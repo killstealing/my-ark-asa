@@ -354,7 +354,25 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <div><span class="field-label">参数名</span></div>
         <div class="field-value" style="font-family:Consolas,monospace;color:var(--primary);">{{ editing.key }}</div>
         <div><span class="field-label">当前值</span></div>
-        <input class="edit-input" :class="{ error: editError }" v-model="editValue" @keydown.enter="saveEdit" @keydown.escape="closeEdit" ref="editInput" autofocus>
+        <!-- 数值类型: number input -->
+        <input v-if="editing.meta?.t === 'number'" type="number" class="edit-input"
+          :class="{ error: editError }" v-model="editValue"
+          :min="editing.meta?.min" :max="editing.meta?.max" step="any"
+          @keydown.enter="saveEdit" @keydown.escape="closeEdit" ref="editInput" autofocus>
+        <!-- 布尔类型: radio buttons -->
+        <div v-else-if="editing.meta?.t === 'boolean'" style="display:flex;gap:20px;padding:4px 0;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text);font-size:15px;">
+            <input type="radio" v-model="editValue" value="True" @keydown.escape="closeEdit" style="accent-color:var(--primary2);width:16px;height:16px;">
+            <b>True</b> — 启用
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text);font-size:15px;">
+            <input type="radio" v-model="editValue" value="False" @keydown.escape="closeEdit" style="accent-color:var(--primary2);width:16px;height:16px;">
+            <b>False</b> — 禁用
+          </label>
+        </div>
+        <!-- 字符串/密码/枚举: text input -->
+        <input v-else class="edit-input" :class="{ error: editError }" v-model="editValue"
+          @keydown.enter="saveEdit" @keydown.escape="closeEdit" ref="editInput" autofocus>
         <div v-if="editError" class="edit-hint error">{{ editError }}</div>
         <div v-else class="edit-hint">默认值: {{ editing.meta?.d || '未知' }} | 类型: {{ editing.meta?.t || 'string' }}</div>
         <div class="edit-hint" style="color:var(--text2);">{{ editing.meta?.n || '' }}</div>
@@ -2630,16 +2648,11 @@ PvPStructureDecayPeriodMultiplier=1
 
       // Validate
       const meta = editing.value.meta;
-      const val = editValue.value.trim();
+      const raw = editValue.value;
+      const val = raw != null ? String(raw).trim() : '';
       editError.value = '';
 
-      if (meta?.t === 'boolean') {
-        const v = val.toLowerCase();
-        if (v !== 'true' && v !== 'false') {
-          editError.value = '布尔值必须为 True 或 False';
-          return;
-        }
-      } else if (meta?.t === 'number') {
+      if (meta?.t === 'number') {
         if (isNaN(Number(val)) || val === '') {
           editError.value = '必须为数字';
           return;
