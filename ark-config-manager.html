@@ -560,10 +560,12 @@ tbody tr:hover td.actions .btn { opacity:1; }
           <div class="deploy-field">
             <label class="deploy-label">管理员密码</label>
             <input class="edit-input" v-model="adminPassword" placeholder="管理员密码" style="width:100%;">
+            <span style="font-size:10px;color:var(--text3);">写入 GameUserSettings.ini，不会出现在启动命令中</span>
           </div>
           <div class="deploy-field">
             <label class="deploy-label">服务器密码（可选）</label>
             <input class="edit-input" v-model="serverPassword" placeholder="留空则无密码" style="width:100%;">
+            <span style="font-size:10px;color:var(--text3);">写入 GameUserSettings.ini，不会出现在启动命令中</span>
           </div>
         </div>
         <div class="deploy-advanced-toggle" @click="showAdvanced = !showAdvanced">
@@ -1249,6 +1251,22 @@ function writeINI(sections) {
   return lines.join('\n');
 }
 
+/** 将密码注入 GameUserSettings.ini 文本（不修改 sections，仅处理输出文本） */
+function injectPasswords(iniText, adminPassword, serverPassword) {
+  let result = iniText || '';
+  if (!result.includes('[ServerSettings]')) {
+    result = result + '\n[ServerSettings]\n';
+  }
+  result = result.replace(/^ServerAdminPassword=.*$/gm, '').replace(/^ServerPassword=.*$/gm, '');
+  const inject = [];
+  if (adminPassword) inject.push('ServerAdminPassword=' + adminPassword);
+  if (serverPassword) inject.push('ServerPassword=' + serverPassword);
+  if (inject.length > 0) {
+    result = result.replace('[ServerSettings]', '[ServerSettings]\n' + inject.join('\n'));
+  }
+  return result.replace(/\n{3,}/g, '\n\n');
+}
+
 // ============================================================================
 // VUE APPLICATION
 // ============================================================================
@@ -1474,8 +1492,6 @@ const app = createApp({
     function fallbackBat(exeDir) {
       const mapUrl = selectedMap.value + '?listen' +
         '?SessionName=' + sessionName.value +
-        (adminPassword.value ? '?ServerAdminPassword=' + adminPassword.value : '') +
-        (serverPassword.value ? '?ServerPassword=' + serverPassword.value : '') +
         '?QueryPort=' + queryPort.value +
         (enableRCON.value ? '?RCONEnabled=True?RCONPort=' + rconPort.value : '');
       const flags = ['-port=' + gamePort.value, '-WinLiveMaxPlayers=' + maxPlayers.value];
@@ -1495,7 +1511,7 @@ const app = createApp({
       if (!serverPath.value.trim()) { deployMsg.value = '请先输入服务器路径'; deployMsgType.value = 'error'; return; }
       const batContent = generateBatContent();
       const files = [];
-      if (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) files.push({ name: 'GameUserSettings.ini', content: writeINI(tabSections.gameusersettings) });
+      if (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) files.push({ name: 'GameUserSettings.ini', content: injectPasswords(writeINI(tabSections.gameusersettings), adminPassword.value, serverPassword.value) });
       if (tabSections.game && tabSections.game.length > 0) files.push({ name: 'Game.ini', content: writeINI(tabSections.game) });
       try {
         if (window.showDirectoryPicker && files.length > 0) {
@@ -1636,7 +1652,7 @@ const app = createApp({
         clusterId: clusterId.value,
         clusterDir: clusterDir.value,
         modIds: selectedModIds.value,
-        gameusersettingsIni: (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) ? writeINI(tabSections.gameusersettings) : null,
+        gameusersettingsIni: (() => { const txt = (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) ? writeINI(tabSections.gameusersettings) : ''; return injectPasswords(txt, adminPassword.value, serverPassword.value); })(),
         gameIni: (tabSections.game && tabSections.game.length > 0) ? writeINI(tabSections.game) : null,
       };
 

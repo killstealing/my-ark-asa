@@ -80,8 +80,6 @@ function buildCommandLine(config) {
   // 无模板时用硬编码格式
   const mapUrl = `${config.selectedMap}?listen` +
     `?SessionName=${config.sessionName}` +
-    (config.adminPassword ? `?ServerAdminPassword=${config.adminPassword}` : '') +
-    (config.serverPassword ? `?ServerPassword=${config.serverPassword}` : '') +
     `?QueryPort=${config.queryPort}` +
     (config.enableRCON ? `?RCONEnabled=True?RCONPort=${config.rconPort}` : '');
   const flags = [
@@ -95,6 +93,24 @@ function buildCommandLine(config) {
   return `start "${config.sessionName}" ArkAscendedServer.exe ${mapUrl} ${flags.join(' ')}`;
 }
 
+/** 将密码注入 GameUserSettings.ini 的 [ServerSettings] */
+function injectPasswords(iniContent, adminPassword, serverPassword) {
+  let result = iniContent || '';
+  if (!result.includes('[ServerSettings]')) {
+    result = result + '\n[ServerSettings]\n';
+  }
+  // 移除已有的密码行，再追加
+  result = result.replace(/^ServerAdminPassword=.*$/gm, '').replace(/^ServerPassword=.*$/gm, '');
+  const inject = [];
+  if (adminPassword) inject.push(`ServerAdminPassword=${adminPassword}`);
+  if (serverPassword) inject.push(`ServerPassword=${serverPassword}`);
+  if (inject.length > 0) {
+    result = result.replace(/\[ServerSettings\]/, `[ServerSettings]\n${inject.join('\n')}`);
+  }
+  // 清理多余空行
+  return result.replace(/\n{3,}/g, '\n\n');
+}
+
 /** 写入配置文件到服务器目录 */
 function writeConfigFiles(config) {
   const configDir = path.join(config.serverPath, 'ShooterGame', 'Saved', 'Config', 'WindowsServer');
@@ -102,8 +118,12 @@ function writeConfigFiles(config) {
     fs.mkdirSync(configDir, { recursive: true });
   }
 
-  if (config.gameusersettingsIni) {
-    fs.writeFileSync(path.join(configDir, 'GameUserSettings.ini'), config.gameusersettingsIni, 'utf-8');
+  let gusIni = config.gameusersettingsIni || '';
+  if (config.adminPassword || config.serverPassword) {
+    gusIni = injectPasswords(gusIni, config.adminPassword, config.serverPassword);
+  }
+  if (gusIni) {
+    fs.writeFileSync(path.join(configDir, 'GameUserSettings.ini'), gusIni, 'utf-8');
     broadcastLog(`[系统] GameUserSettings.ini 已写入`);
   }
   if (config.gameIni) {
