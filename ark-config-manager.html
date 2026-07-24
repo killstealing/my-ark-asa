@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARK ASA 服务器配置管理器</title>
+<style>
+/* ===== CSS Variables (Dark/Light Theme) ===== */
+:root {
+  --bg: #1a1a2e;
+  --bg2: #16213e;
+  --bg3: #0f3460;
+  --surface: #1e2a3a;
+  --surface2: #253548;
+  --border: #2a3a50;
+  --text: #e0e0e0;
+  --text2: #a0aec0;
+  --text3: #718096;
+  --primary: #4fc3f7;
+  --primary2: #0288d1;
+  --accent: #ffb74d;
+  --danger: #ef5350;
+  --success: #66bb6a;
+  --modified: #ffb74d22;
+  --modified-border: #ffb74d;
+  --hover: #ffffff10;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --radius: 6px;
+  --transition: 0.2s ease;
+}
+:root.light {
+  --bg: #f8f9fa;
+  --bg2: #e9ecef;
+  --bg3: #dee2e6;
+  --surface: #ffffff;
+  --surface2: #f1f3f5;
+  --border: #dee2e6;
+  --text: #212529;
+  --text2: #495057;
+  --text3: #868e96;
+  --primary: #1976d2;
+  --primary2: #0d47a1;
+  --accent: #e65100;
+  --danger: #c62828;
+  --success: #2e7d32;
+  --modified: #fff3e0;
+  --modified-border: #e65100;
+  --hover: #00000008;
+  --shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ===== Reset & Base ===== */
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  height: 100vh; overflow: hidden; user-select: none;
+}
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ===== Layout ===== */
+#app { display:flex; flex-direction:column; height:100vh; }
+
+/* Header */
+.header {
+  display:flex; align-items:center; gap:12px;
+  padding:8px 16px; background:var(--bg2);
+  border-bottom:1px solid var(--border); z-index:10;
+  flex-shrink:0; min-height:48px;
+}
+.header .logo { font-size:18px; font-weight:700; color:var(--primary); white-space:nowrap; }
+.header .logo span { font-size:12px; color:var(--text3); font-weight:400; margin-left:6px; }
+.header .file-info { font-size:12px; color:var(--text2); margin-left:auto; text-align:right; }
+.header .file-info .name { color:var(--primary); font-weight:600; }
+.header .file-info .count { color:var(--accent); }
+.btn {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:6px 14px; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--surface); color:var(--text); cursor:pointer;
+  font-size:13px; transition:var(--transition); white-space:nowrap;
+}
+.btn:hover { background:var(--surface2); border-color:var(--primary); }
+.btn.primary { background:var(--primary2); border-color:var(--primary2); color:#fff; }
+.btn.primary:hover { background:var(--primary); }
+.btn.danger { border-color:var(--danger); color:var(--danger); }
+.btn.danger:hover { background:var(--danger); color:#fff; }
+.btn.small { padding:2px 8px; font-size:11px; }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* Body */
+.body { display:flex; flex:1; overflow:hidden; }
+
+/* Sidebar */
+.sidebar {
+  width:220px; flex-shrink:0; background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.sidebar-header {
+  padding:10px 12px; font-size:12px; font-weight:600;
+  color:var(--text3); text-transform:uppercase; letter-spacing:0.5px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-list { flex:1; overflow-y:auto; padding:4px 0; }
+.cat-item {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 12px; cursor:pointer; font-size:13px;
+  color:var(--text2); transition:var(--transition);
+  border-left:3px solid transparent;
+}
+.cat-item:hover { background:var(--hover); color:var(--text); }
+.cat-item.active { background:var(--surface2); color:var(--primary); border-left-color:var(--primary); font-weight:600; }
+.cat-item .icon { font-size:15px; width:20px; text-align:center; flex-shrink:0; }
+.cat-item .count { margin-left:auto; font-size:11px; color:var(--text3); }
+.cat-item .count.modified { color:var(--accent); font-weight:700; }
+
+/* Main */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* Toolbar */
+.toolbar {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 12px; background:var(--surface);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+  flex-wrap:wrap;
+}
+.search-box {
+  flex:1; min-width:200px; max-width:400px;
+  padding:6px 12px; border:1px solid var(--border); border-radius:20px;
+  background:var(--bg); color:var(--text); font-size:13px; outline:none;
+  transition:var(--transition);
+}
+.search-box:focus { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary)22; }
+.search-box::placeholder { color:var(--text3); }
+.filter-chip {
+  padding:4px 10px; border-radius:12px; font-size:12px;
+  border:1px solid var(--border); cursor:pointer; transition:var(--transition);
+  background:var(--surface); color:var(--text2); white-space:nowrap;
+}
+.filter-chip:hover { border-color:var(--primary); }
+.filter-chip.active { background:var(--primary2); border-color:var(--primary2); color:#fff; }
+
+/* Table Container */
+.table-wrap { flex:1; overflow:auto; position:relative; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead { position:sticky; top:0; z-index:5; }
+thead th {
+  background:var(--bg2); color:var(--text2); font-weight:600;
+  padding:8px 12px; text-align:left; border-bottom:2px solid var(--border);
+  white-space:nowrap; font-size:12px; cursor:pointer;
+}
+thead th:hover { color:var(--text); }
+thead th .sort-arrow { font-size:10px; margin-left:2px; opacity:0.5; }
+thead th .sort-arrow.active { opacity:1; color:var(--primary); }
+tbody td {
+  padding:6px 12px; border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+tbody tr { transition:var(--transition); }
+tbody tr:hover { background:var(--hover); }
+tbody tr.modified { background:var(--modified); }
+tbody tr.modified td:first-child { border-left:3px solid var(--modified-border); }
+td.param-name { font-family:'Consolas','Fira Code',monospace; font-size:12px; color:var(--primary); font-weight:500; }
+td.param-value { font-weight:600; }
+td.param-value.modified-val { color:var(--accent); font-weight:700; }
+td.param-default { color:var(--text3); font-family:'Consolas','Fira Code',monospace; font-size:12px; }
+td.param-desc { color:var(--text2); font-size:12px; max-width:300px; overflow:hidden; text-overflow:ellipsis; }
+td.param-section { font-size:11px; color:var(--text3); }
+td.actions { text-align:center; }
+td.actions .btn { opacity:0; }
+tbody tr:hover td.actions .btn { opacity:1; }
+
+/* Empty state */
+.empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; color:var(--text3); gap:12px;
+}
+.empty .icon { font-size:64px; opacity:0.3; }
+.empty .text { font-size:16px; }
+.empty .sub { font-size:13px; color:var(--text3); }
+
+/* Drop Zone */
+.drop-overlay {
+  position:fixed; inset:0; background:var(--primary)22;
+  border:3px dashed var(--primary); z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; color:var(--primary); font-weight:700;
+  pointer-events:none; opacity:0; transition:opacity 0.2s;
+}
+.drop-overlay.show { opacity:1; }
+
+/* Edit Modal */
+.modal-backdrop {
+  position:fixed; inset:0; background:rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center; z-index:50;
+}
+.modal {
+  background:var(--surface); border-radius:var(--radius);
+  box-shadow:var(--shadow); min-width:400px; max-width:500px;
+  overflow:hidden;
+}
+.modal-header {
+  padding:12px 16px; border-bottom:1px solid var(--border);
+  font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px;
+}
+.modal-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+.modal-footer {
+  padding:10px 16px; border-top:1px solid var(--border);
+  display:flex; justify-content:flex-end; gap:8px;
+}
+.field-label { font-size:12px; color:var(--text3); font-weight:600; }
+.field-value { font-size:14px; color:var(--text); word-break:break-all; }
+.edit-input {
+  width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--bg); color:var(--text); font-size:16px; font-family:'Consolas',monospace;
+  outline:none; transition:var(--transition);
+}
+.edit-input:focus { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary)22; }
+.edit-input.error { border-color:var(--danger); }
+.edit-hint { font-size:12px; color:var(--text3); }
+.edit-hint.error { color:var(--danger); }
+
+/* File Intro */
+.file-intro { background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0; }
+.file-intro-inner { display:flex; align-items:stretch; gap:12px; padding:10px 16px; position:relative; }
+.file-intro-card {
+  flex:1; padding:10px 14px; border-radius:var(--radius);
+  background:var(--surface); border:2px solid var(--border);
+  cursor:pointer; transition:var(--transition);
+}
+.file-intro-card:hover { border-color:var(--primary); }
+.file-intro-card.active { border-color:var(--primary); background:var(--primary)11; }
+.file-intro-title { font-size:14px; font-weight:700; color:var(--primary); margin-bottom:2px; }
+.file-intro-sub { font-size:11px; color:var(--text3); margin-bottom:6px; }
+.file-intro-desc { font-size:11px; color:var(--text2); line-height:1.7; }
+.file-intro-desc b { color:var(--text); }
+.file-intro-arrow {
+  display:flex; align-items:center; font-size:13px; color:var(--accent);
+  font-weight:700; white-space:nowrap; padding:0 4px;
+}
+
+/* Category Note */
+.cat-note {
+  margin:0 12px; padding:10px 14px;
+  background:var(--surface); border:1px solid var(--primary);
+  border-radius:var(--radius); font-size:12px; line-height:1.7;
+  flex-shrink:0; max-height:200px; overflow-y:auto;
+}
+.cat-note-title { font-weight:700; color:var(--primary); margin-bottom:4px; font-size:13px; }
+.cat-note-body { color:var(--text2); user-select:text; }
+.cat-note-body b { color:var(--text); }
+.cat-note-body .formula { color:var(--accent); font-family:Consolas,monospace; }
+.cat-note-body .warn { color:var(--danger); }
+
+/* Mod Search */
+.mod-panel { flex:1; overflow-y:auto; padding:16px; }
+.mod-search-bar { display:flex; gap:10px; align-items:center; margin-bottom:16px; }
+.mod-results { display:flex; flex-direction:column; gap:10px; }
+.mod-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; }
+.mod-card-header { display:flex; gap:10px; align-items:center; }
+.mod-info { flex:1; }
+.mod-name { font-size:14px; font-weight:600; color:var(--primary); }
+.mod-meta { font-size:11px; color:var(--text3); margin-top:2px; }
+.mod-meta b { color:var(--text2); }
+.mod-summary { font-size:12px; color:var(--text2); margin-top:8px; line-height:1.5; }
+.mod-cat-tag { padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; background:var(--primary)22; color:var(--primary); white-space:nowrap; flex-shrink:0; }
+.mod-pager { display:flex; gap:8px; align-items:center; justify-content:center; padding:12px 0; }
+
+/* Status Bar */
+.status-bar {
+  display:flex; align-items:center; gap:16px;
+  padding:4px 16px; background:var(--bg2);
+  border-top:1px solid var(--border); font-size:11px;
+  color:var(--text3); flex-shrink:0;
+}
+.status-bar .dot { width:6px; height:6px; border-radius:50%; background:var(--success); }
+.status-bar .dot.unsaved { background:var(--accent); }
+
+/* Tabs */
+.tabs { display:flex; gap:0; }
+.tab {
+  padding:6px 14px; font-size:12px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text2); cursor:pointer;
+  transition:var(--transition);
+}
+.tab:first-child { border-radius:var(--radius) 0 0 var(--radius); }
+.tab:last-child { border-radius:0 var(--radius) var(--radius) 0; }
+.tab.active { background:var(--primary2); border-color:var(--primary2); color:#fff; }
+
+/* Responsive */
+@media (max-width:768px) {
+  .sidebar { width:160px; }
+  .header { flex-wrap:wrap; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Drop Overlay -->
+  <div class="drop-overlay" :class="{ show: isDragging }">📂 释放文件以加载</div>
+
+  <!-- Edit Modal -->
+  <div v-if="editing" class="modal-backdrop" @click.self="closeEdit">
+    <div class="modal">
+      <div class="modal-header">✏️ 编辑参数</div>
+      <div class="modal-body">
+        <div><span class="field-label">参数名</span></div>
+        <div class="field-value" style="font-family:Consolas,monospace;color:var(--primary);">{{ editing.key }}</div>
+        <div><span class="field-label">当前值</span></div>
+        <input class="edit-input" :class="{ error: editError }" v-model="editValue" @keydown.enter="saveEdit" @keydown.escape="closeEdit" ref="editInput" autofocus>
+        <div v-if="editError" class="edit-hint error">{{ editError }}</div>
+        <div v-else class="edit-hint">默认值: {{ editing.meta?.d || '未知' }} | 类型: {{ editing.meta?.t || 'string' }}</div>
+        <div class="edit-hint" style="color:var(--text2);">{{ editing.meta?.n || '' }}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn small" @click="resetEdit">↩ 重置为默认值</button>
+        <div style="flex:1"></div>
+        <button class="btn" @click="closeEdit">取消</button>
+        <button class="btn primary" @click="saveEdit" :disabled="!!editError">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">🦖 ARK ASA <span>服务器配置管理器</span></div>
+    <div class="tabs">
+      <button class="tab" :class="{ active: activeTab === 'gameusersettings' }" @click="switchTab('gameusersettings')">GameUserSettings.ini</button>
+      <button class="tab" :class="{ active: activeTab === 'game' }" @click="switchTab('game')">Game.ini</button>
+      <button class="tab" :class="{ active: activeTab === 'mods' }" @click="switchTab('mods')">🔌 Mod搜索</button>
+    </div>
+    <button class="btn primary" @click="openFile">📂 打开文件</button>
+    <button class="btn" @click="saveFile" :disabled="!fileHandle || !isModified">💾 保存到原文件</button>
+    <button class="btn" @click="downloadFile" :disabled="!hasData">📥 下载文件</button>
+    <select v-model="template" style="padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;">
+      <option value="">📦 下载模版...</option>
+      <option value="official-game">Game.ini — 官服：全部1倍，关闭便利功能，纯官方体验</option>
+      <option value="official-gus">GameUserSettings.ini — 官服：难度0.2，PVP模式，无加速</option>
+      <option value="high-game">Game.ini — 高倍率：3倍经验，10倍繁殖/孵化/留痕，3倍采集，3倍负重，可加移速/无限洗点/尸体光柱</option>
+      <option value="high-gus">GameUserSettings.ini — 高倍率：3倍经验/采集，5倍驯服，PVE，建筑不腐坏，白天长夜晚短，第三人称/地图定位/准星全开</option>
+    </select>
+    <button class="btn" @click="showIntro = !showIntro" style="font-size:12px;">📖 {{ showIntro ? '隐藏说明' : '配置说明' }}</button>
+    <label class="btn" style="cursor:pointer;">🌓 <input type="checkbox" v-model="isDark" @change="toggleTheme" style="display:none;"></label>
+    <div class="file-info" v-if="fileHandle">
+      <div>📄 <span class="name">{{ fileHandle.name }}</span></div>
+      <div v-if="modifiedCount > 0">已修改 <span class="count">{{ modifiedCount }}</span> 项</div>
+      <div v-else>全部为默认值</div>
+    </div>
+  </div>
+
+  <!-- 配置文件说明 -->
+  <div class="file-intro" v-if="!showIntro && activeTab !== 'mods'">
+    <div class="file-intro-inner">
+      <div class="file-intro-card" :class="{ active: activeTab === 'gameusersettings' }" @click="switchTab('gameusersettings')">
+        <div class="file-intro-title">📋 GameUserSettings.ini</div>
+        <div class="file-intro-sub">服务器管理配置</div>
+        <div class="file-intro-desc">
+          <b>先加载</b> → 可被 Game.ini 覆盖<br>
+          管 <b>倍率</b>（经验/驯服/采集）<br>
+          管 <b>模式</b>（PVE/PVP/硬核）<br>
+          管 <b>规则</b>（建筑腐坏/洞穴/地堡）<br>
+          管 <b>密码</b>和 <b>RCON</b><br>
+          管 <b>Mod</b> 配置
+        </div>
+      </div>
+      <div class="file-intro-arrow">➡️ 后加载覆盖</div>
+      <div class="file-intro-card" :class="{ active: activeTab === 'game' }" @click="switchTab('game')">
+        <div class="file-intro-title">🎮 Game.ini</div>
+        <div class="file-intro-sub">游戏机制配置</div>
+        <div class="file-intro-desc">
+          <b>后加载</b> → 覆盖 GameUserSettings<br>
+          管 <b>属性成长</b>（恐龙/玩家每级加点）<br>
+          管 <b>繁殖</b>（孵化/成长/留痕/交配）<br>
+          管 <b>伤害/抗性</b>（PVP战斗平衡）<br>
+          管 <b>细分经验</b>（采集/击杀/制作经验）<br>
+          管 <b>功能开关</b>（禁用驯服/建筑碰撞等）
+        </div>
+      </div>
+      <button class="btn small" style="position:absolute;top:6px;right:10px;" @click="showIntro = true">✕ 收起</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body" v-if="activeTab !== 'mods'">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">📁 参数分类</div>
+      <div class="sidebar-list">
+        <div class="cat-item" :class="{ active: selectedCategory === null }" @click="selectedCategory = null">
+          <span class="icon">📋</span>所有参数<span class="count">{{ allParams.length }}</span>
+        </div>
+        <div class="cat-item" v-for="cat in categories" :key="cat" :class="{ active: selectedCategory === cat }" @click="selectedCategory = cat">
+          <span class="icon">{{ catIcons[cat] || '📌' }}</span>{{ cat }}
+          <span class="count" :class="{ modified: catModifiedCount(cat) > 0 }">{{ catModifiedCount(cat) > 0 ? '🔸' : '' }} {{ catCount(cat) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <input class="search-box" v-model="searchQuery" placeholder="🔍 搜索参数名、说明...">
+        <button class="filter-chip" :class="{ active: showModifiedOnly }" @click="showModifiedOnly = !showModifiedOnly">
+          {{ showModifiedOnly ? '✓ 仅已修改' : '仅已修改' }}
+        </button>
+        <span style="font-size:12px;color:var(--text3);margin-left:auto;">
+          显示 {{ filteredParams.length }} / {{ allParams.length }} 项
+        </span>
+      </div>
+
+      <!-- 分类联动说明 -->
+      <div class="cat-note" v-if="catNote">
+        <div class="cat-note-title">💡 {{ selectedCategory }} — 参数联动说明</div>
+        <div class="cat-note-body" v-html="catNote"></div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table v-if="hasData && filteredParams.length > 0">
+          <thead>
+            <tr>
+              <th @click="toggleSort('key')" style="width:200px;">参数名 <span class="sort-arrow" :class="{ active: sortKey === 'key' }">{{ sortKey === 'key' ? (sortAsc ? '▲' : '▼') : '⇅' }}</span></th>
+              <th @click="toggleSort('value')" style="width:120px;">当前值 <span class="sort-arrow" :class="{ active: sortKey === 'value' }">{{ sortKey === 'value' ? (sortAsc ? '▲' : '▼') : '⇅' }}</span></th>
+              <th style="width:100px;">默认值</th>
+              <th style="min-width:200px;">说明</th>
+              <th style="width:80px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in filteredParams" :key="p.section + '::' + p.key"
+                :class="{ modified: p.isModified }">
+              <td class="param-name" :title="p.section + ' / ' + p.key">{{ p.key }}</td>
+              <td class="param-value" :class="{ 'modified-val': p.isModified }" @dblclick="startEdit(p)">{{ p.value }}</td>
+              <td class="param-default">{{ p.meta?.d || '?' }}</td>
+              <td class="param-desc" :title="p.meta?.n || ''">{{ p.meta?.n || p.rawComment || '-' }}</td>
+              <td class="actions">
+                <button class="btn small" @click="copyParam(p)" title="复制参数名">📋</button>
+                <button class="btn small" @click="startEdit(p)" title="编辑">✏️</button>
+                <button v-if="p.isModified" class="btn small danger" @click="resetParam(p)" title="重置为默认值">↩</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-else class="empty">
+          <div class="icon">{{ hasData ? '🔍' : '📂' }}</div>
+          <div class="text">{{ hasData ? '没有匹配的参数' : '还没有加载配置文件' }}</div>
+          <div class="sub">{{ hasData ? '尝试修改搜索条件' : '点击「打开文件」或拖拽 .ini 文件到窗口以开始' }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mod 搜索面板 -->
+  <div class="body" v-if="activeTab === 'mods'">
+    <div class="mod-panel">
+      <div class="mod-search-bar">
+        <input class="search-box" v-model="modQuery" @input="searchMods()" placeholder="🔍 搜索 Mod（名称 / 类型 / ID）..." style="max-width:450px;">
+      </div>
+      <div class="mod-results" v-if="modResults.length > 0">
+        <div class="mod-card" v-for="m in modResults" :key="m.id">
+          <div class="mod-card-header">
+            <span class="mod-cat-tag" v-if="m.cat">{{ m.cat }}</span>
+            <div class="mod-info">
+              <div class="mod-name">{{ m.name }}</div>
+              <div class="mod-meta">ID: <b>{{ m.id }}</b></div>
+            </div>
+            <button class="btn small" @click="copyModId(m.id)">📋 复制ID</button>
+          </div>
+          <div class="mod-summary">{{ m.summary }}</div>
+        </div>
+        <!-- 分页 -->
+        <div class="mod-pager" v-if="modTotal > modPageSize">
+          <button class="btn small" @click="searchMods(0)" :disabled="modPage === 0">⏮</button>
+          <button class="btn small" @click="searchMods(modPage - 1)" :disabled="modPage === 0">◀ 上一页</button>
+          <span style="font-size:12px;color:var(--text2);">第 {{ modPage + 1 }} / {{ Math.ceil(modTotal / modPageSize) }} 页 (共 {{ modTotal }} 个)</span>
+          <button class="btn small" @click="searchMods(modPage + 1)" :disabled="(modPage + 1) * modPageSize >= modTotal">下一页 ▶</button>
+          <button class="btn small" @click="searchMods(Math.floor(modTotal / modPageSize))" :disabled="(modPage + 1) * modPageSize >= modTotal">⏭</button>
+        </div>
+      </div>
+      <div class="empty" v-if="modSearched && modResults.length === 0">
+        <div class="icon">🔍</div>
+        <div class="text">没有找到匹配的 Mod</div>
+        <div class="sub">试试其他关键词，或前往 <b>curseforge.com/ark-survival-ascended</b> 手动查找 Mod ID</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="dot" :class="{ unsaved: isModified }"></span>
+    <span>{{ isModified ? '有未保存的修改' : '已保存' }}</span>
+    <span v-if="fileHandle">| 文件: {{ fileHandle.name }}</span>
+    <span>| 支持 Chrome / Edge（File System Access API）</span>
+    <span style="margin-left:auto;">拖拽 .ini 文件到窗口即可加载</span>
+  </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+const { createApp, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } = Vue;
+
+// ============================================================================
+// METADATA — 所有参数的中文说明、默认值、分类、类型
+// 格式: META[sectionLower][keyLower] = { n:说明, d:默认值, t:类型, c:分类 }
+// 类型: number | boolean | string | password | enum
+// ============================================================================
+const META = {};
+
+// 辅助函数: 添加元数据
+function m(section, key, name, def, type, cat, opts) {
+  const s = section.toLowerCase();
+  if (!META[s]) META[s] = {};
+  META[s][key.toLowerCase()] = { n: name, d: String(def), t: type, c: cat, ...opts };
+}
+
+// --- Game.ini: [/Script/ShooterGame.ShooterGameMode] ---
+const SEC_GAME = '[/Script/ShooterGame.ShooterGameMode]';
+m(SEC_GAME, 'XPMultiplier', '通用经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'HarvestXPMultiplier', '采集获得经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'CraftXPMultiplier', '制作获得经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'KillXPMultiplier', '击杀获得经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'GenericXPMultiplier', '其他通用行为经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'SpecialXPMultiplier', '特殊事件经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'ExplorerNoteXPMultiplier', '探索笔记经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'BossKillXPMultiplier', '击杀Boss经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'AlphaKillXPMultiplier', '击杀Alpha生物经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'WildKillXPMultiplier', '击杀野生生物经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'CaveKillXPMultiplier', '洞穴内击杀经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'TamedKillXPMultiplier', '驯养生物击杀经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'UnclaimedKillXPMultiplier', '击杀无主生物经验倍率', 1.0, 'number', '经验倍率');
+m(SEC_GAME, 'DinoHarvestingDamageMultiplier', '恐龙对资源的破坏力（值越大采集越快，3.2=每次攻击获得3.2倍资源）', 1.0, 'number', '采集与制作');
+m(SEC_GAME, 'PlayerHarvestingDamageMultiplier', '玩家对资源的破坏力（值越大采集越快，>1=砍树挖矿更高效）', 1.0, 'number', '采集与制作');
+m(SEC_GAME, 'HarvestHealthMultiplier', '资源生命值倍率（值越大每棵树/石头能出的资源越多，1.2=多20%）', 1.0, 'number', '采集与制作');
+m(SEC_GAME, 'CustomRecipeEffectivenessMultiplier', '自定义食谱效果倍率', 1.0, 'number', '采集与制作');
+m(SEC_GAME, 'CustomRecipeSkillMultiplier', '自定义食谱技能加成倍率', 1.0, 'number', '采集与制作');
+m(SEC_GAME, 'CraftingSkillBonusMultiplier', '制作技能加成倍率', 1.0, 'number', '采集与制作');
+m(SEC_GAME, 'BabyMatureSpeedMultiplier', '幼崽成长速度（值越大长得越快，10=10倍速成年，幼年期和青年期大幅缩短）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'EggHatchSpeedMultiplier', '蛋孵化速度（值越大孵化越快，10=10倍速破壳，受精蛋很快就能孵出来）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'MatingIntervalMultiplier', '交配冷却间隔（值越小冷却越短，0.01≈几乎无冷却可连续交配，1=正常等待）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'LayEggIntervalMultiplier', '产蛋间隔（值越小产蛋越频繁，0.01≈不停下蛋，值越大蛋越少）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'BabyCuddleIntervalMultiplier', '留痕抚摸间隔（值越小抚摸机会越多，0.1=10倍留痕频率，留痕更容易满）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'BabyFoodConsumptionSpeedMultiplier', '幼崽食物消耗速度（值越大吃得越快越容易饿死，1=正常消耗）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'BabyImprintingStatScaleMultiplier', '留痕满后属性加成倍率（值越大满留痕的恐龙属性越强，1=正常加成）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'BabyCuddleGracePeriodMultiplier', '留痕宽限期倍率（值越大超时后还可补留痕的时间越长，避免错过留痕）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'BabyCuddleLoseImprintQualitySpeedMultiplier', '留痕质量下降速度（值越大错过留痕后质量掉得越快，0=不掉留痕质量）', 1.0, 'number', '繁殖系统');
+m(SEC_GAME, 'PoopIntervalMultiplier', '生物排便间隔倍率（值越大拉得越少，排便频率越低）', 1.0, 'number', '生物与玩家');
+m(SEC_GAME, 'GlobalSpoilingTimeMultiplier', '食物腐坏时间速度（值越大腐坏越慢，0=永不腐坏，2=双倍时间，<1=更快变质）', 1.0, 'number', '生物与玩家');
+m(SEC_GAME, 'GlobalItemDecompositionTimeMultiplier', '物品分解时间（值越大分解越慢，0=永不分解，<1=更快消失）', 1.0, 'number', '生物与玩家');
+m(SEC_GAME, 'GlobalCorpseDecompositionTimeMultiplier', '尸体自然消失时间（值越大尸体保留越久才消失，6=6倍时间）', 1.0, 'number', '生物与玩家');
+m(SEC_GAME, 'CropGrowthSpeedMultiplier', '农作物生长速度（值越大长得越快，2=2倍速成熟，<1=更慢生长）', 1.0, 'number', '农作物与燃料');
+m(SEC_GAME, 'CropDecaySpeedMultiplier', '农作物腐烂速度（值越大烂得越快，0=永不腐烂，<1=更慢腐烂）', 1.0, 'number', '农作物与燃料');
+m(SEC_GAME, 'FuelConsumptionIntervalMultiplier', '燃料消耗速度（值越大消耗越慢，2=燃料用更久，<1=更快烧完）', 1.0, 'number', '农作物与燃料');
+m(SEC_GAME, 'ResourceNoReplenishRadiusPlayers', '玩家附近阻止资源刷新的半径（值越小=离玩家更近就能刷新资源，0.2=很近距离也可刷新）', 1.0, 'number', '资源刷新');
+m(SEC_GAME, 'ResourceNoReplenishRadiusStructures', '建筑附近阻止资源刷新的半径（值越小=离建筑更近就能刷新资源，0.5=中等距离可刷新）', 1.0, 'number', '资源刷新');
+m(SEC_GAME, 'SupplyCrateLootQualityMultiplier', '空投/补给光柱战利品品质（值越大物品品质越好，>1=更容易出传说品质）', 1.0, 'number', '战利品品质');
+m(SEC_GAME, 'FishingLootQualityMultiplier', '钓鱼战利品品质（值越大钓上来的物品品质越高，>1=更容易出好货）', 1.0, 'number', '战利品品质');
+
+// 驯服恐龙属性 (DinoTamed)
+for (const [suf, name] of [['', '驯服基础加点'], ['_Add', '驯服额外加成'], ['_Affinity', '驯服亲和性加成']]) {
+  const stats = ['生命','耐力','眩晕','氧气','食物','水分','温度(无效)','负重','近战伤害','移速','抗性'];
+  const defs = suf === '' ? [0.2,1,1,1,1,1,1,1,0.17,1,1] : suf === '_Add' ? [0.14,1,1,1,1,1,1,1,0.14,1,1] : [0.44,1,1,1,1,1,1,1,0.44,1,1];
+  stats.forEach((s, i) => {
+    m(SEC_GAME, `PerLevelStatsMultiplier_DinoTamed${suf}[${i}]`, `驯服恐龙${name}-${s}`, defs[i], 'number', '属性成长(驯服龙)');
+  });
+}
+
+// 野生恐龙属性
+['生命','耐力','眩晕','氧气','食物','水分','温度(无效)','负重','近战伤害','移速','抗性'].forEach((s, i) => {
+  m(SEC_GAME, `PerLevelStatsMultiplier_DinoWild[${i}]`, `野生恐龙属性-${s}`, 1.0, 'number', '属性成长(野生龙)');
+});
+
+// 玩家属性
+['生命','耐力','眩晕','氧气','食物','水分','温度(无效)','负重','近战伤害','移速','抗性'].forEach((s, i) => {
+  m(SEC_GAME, `PerLevelStatsMultiplier_Player[${i}]`, `玩家属性-${s}`, 1.0, 'number', '属性成长(玩家)');
+});
+
+// PVP/PVE
+m(SEC_GAME, 'PvPZoneStructureDamageMultiplier', 'PVP区域建筑伤害倍率', 1.0, 'number', 'PVP/PVE');
+m(SEC_GAME, 'StructureDamageRepairCooldown', '建筑修复冷却时间(秒)', 180, 'number', 'PVP/PVE');
+m(SEC_GAME, 'IncreasePvPRespawnIntervalCheckPeriod', 'PVP重生递增检测周期(秒)', 300, 'number', 'PVP/PVE');
+m(SEC_GAME, 'IncreasePvPRespawnIntervalMultiplier', 'PVP重生递增倍率', 1.0, 'number', 'PVP/PVE');
+m(SEC_GAME, 'IncreasePvPRespawnIntervalBaseAmount', 'PVP重生递增基础值(秒)', 60, 'number', 'PVP/PVE');
+m(SEC_GAME, 'bIncreasePvPRespawnInterval', '启用PVP重生递增', 'True', 'boolean', 'PVP/PVE');
+m(SEC_GAME, 'bPvEAllowTribeWar', 'PVE允许部落宣战', 'True', 'boolean', 'PVP/PVE');
+m(SEC_GAME, 'bPvEAllowTribeWarCancel', 'PVE允许取消宣战', 'False', 'boolean', 'PVP/PVE');
+
+// 难度与模式
+m(SEC_GAME, 'MaxDifficulty', '最高难度(野生龙最高150级)', 'False', 'boolean', '难度与模式');
+m(SEC_GAME, 'bUseSingleplayerSettings', '使用单机模式设置', 'False', 'boolean', '难度与模式');
+
+// 游戏功能开关
+m(SEC_GAME, 'bUseCorpseLocator', '死亡位置显示光柱', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bShowCreativeMode', '显示创造模式入口', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bHardLimitTurretsInRange', '硬性限制炮塔数量', 'True', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableStructurePlacementCollision', '禁用建筑碰撞检测', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bAllowPlatformSaddleMultiFloors', '允许平台鞍建多层地板', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableLootCrates', '禁用补给光柱', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bAllowCustomRecipes', '允许自定义食谱', 'True', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableFriendlyFire', '禁用友方伤害', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableDinoRiding', '禁用骑乘恐龙', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableDinoTaming', '禁用驯服恐龙', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableDefaultDinoTaming', '禁用默认恐龙驯服', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisablePhotoMode', '禁用照相模式', 'False', 'boolean', '游戏功能');
+
+// 飞行生物
+m(SEC_GAME, 'bFlyerPlatformAllowUnalignedDinoBasing', '飞行平台允许非盟友恐龙建家', 'False', 'boolean', '飞行与平台');
+m(SEC_GAME, 'bPassiveDefensesDamageRiderlessDinos', '被动防御攻击无人骑乘恐龙', 'False', 'boolean', '飞行与平台');
+m(SEC_GAME, 'bAllowSpeedLeveling', '允许玩家加移速', 'False', 'boolean', '飞行与平台');
+m(SEC_GAME, 'bAllowFlyerSpeedLeveling', '允许飞行龙加移速', 'False', 'boolean', '飞行与平台');
+
+// 洗点与定时器
+m(SEC_GAME, 'bAllowUnlimitedRespecs', '允许无限重置属性点', 'False', 'boolean', '其他');
+m(SEC_GAME, 'bAutoPvETimer', '启用自动PVE计时器', 'False', 'boolean', 'PVP/PVE');
+m(SEC_GAME, 'bAutoPvEUseSystemTime', 'PVE计时器使用系统时间', 'False', 'boolean', 'PVP/PVE');
+m(SEC_GAME, 'AutoPvEStartTimeSeconds', '自动PVE开始时间(秒)', 0, 'number', 'PVP/PVE');
+m(SEC_GAME, 'AutoPvEStopTimeSeconds', '自动PVE结束时间(秒)', 0, 'number', 'PVP/PVE');
+
+// 其他
+m(SEC_GAME, 'PhotoModeRangeLimit', '照相模式范围限制', 3000, 'number', '其他');
+m(SEC_GAME, 'OverrideMaxExperiencePointsPlayer', '覆盖玩家最大经验上限(0=默认)', 0, 'number', '其他');
+m(SEC_GAME, 'OverrideMaxExperiencePointsDino', '覆盖恐龙最大经验上限(0=默认)', 0, 'number', '其他');
+m(SEC_GAME, 'MaxNumberOfPlayersInTribe', '部落最大人数(0=无限制)', 0, 'number', '部落');
+m(SEC_GAME, 'DinoTurretDamageMultiplier', '恐龙炮塔伤害倍率', 1.0, 'number', '其他');
+
+// --- GameUserSettings.ini: [ServerSettings] ---
+const SEC_SERVER = '[ServerSettings]';
+m(SEC_SERVER, 'DifficultyOffset', '难度偏移（0-1，1.0=最高难度，配合MaxDifficulty=True使野生龙最高150级）', 0.2, 'number', '难度与模式', {min:0,max:1});
+m(SEC_SERVER, 'DayTimeSpeedScale', '白天流逝速度（值越小白天越久，0.5=白天2倍时长，<1=更长白天，>1=白天更快结束）', 1.0, 'number', '时间与难度');
+m(SEC_SERVER, 'NightTimeSpeedScale', '夜晚流逝速度（值越大夜晚过完得越快，2=夜晚2倍速结束，>1=更短夜晚）', 1.0, 'number', '时间与难度');
+m(SEC_SERVER, 'StartTimeOverride', '覆盖服务器启动时的游戏内时间', 'False', 'boolean', '时间与难度');
+m(SEC_SERVER, 'StartTimeHour', '覆盖的启动时间（小时，0-24，如10=上午10点，-1=不覆盖）', -1, 'number', '时间与难度');
+m(SEC_SERVER, 'XPMultiplier', '通用经验倍率（值越大升级越快，3=3倍经验，影响所有经验来源）', 1.0, 'number', '经验倍率');
+m(SEC_SERVER, 'TamingSpeedMultiplier', '驯服速度倍率（值越大驯服越快，5=只要1/5时间驯好一头龙）', 1.0, 'number', '采集与制作');
+m(SEC_SERVER, 'HarvestAmountMultiplier', '采集资源数量倍率（值越大每次采集得到越多，3=3倍资源量）', 1.0, 'number', '采集与制作');
+m(SEC_SERVER, 'HarvestHealthMultiplier', '资源生命值倍率（值越大每棵树/石头产出的资源总量越多，1.2=多20%）', 1.0, 'number', '采集与制作');
+m(SEC_SERVER, 'DinoCountMultiplier', '野生恐龙数量倍率（值越大野外龙越多，2=2倍数量，⚠会明显增加服务器负载）', 1.0, 'number', '生物与玩家');
+m(SEC_SERVER, 'OxygenSwimSpeedStatMultiplier', '氧气对游泳速度加成倍率', 1.0, 'number', '生物与玩家');
+m(SEC_SERVER, 'StructurePreventResourceRadiusMultiplier', '建筑阻止资源刷新半径倍率', 1.0, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'PvEDinoDecayPeriodMultiplier', 'PVE恐龙腐坏周期倍率', 1.0, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'DisableStructureDecayPvE', 'PVE禁用建筑自然腐坏', 'False', 'boolean', '建筑与腐坏');
+m(SEC_SERVER, 'PerPlatformMaxStructuresMultiplier', '平台鞍建筑数量上限倍率', 1.0, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'TheMaxStructuresInRange', '范围内最大建筑数量', 10500, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'PlatformSaddleBuildAreaBoundsMultiplier', '平台鞍可建区域边界倍率', 1.0, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'AlwaysAllowStructurePickup', '始终允许拾取建筑', 'False', 'boolean', '建筑与腐坏');
+m(SEC_SERVER, 'StructurePickupTimeAfterPlacement', '放置后可拾取时间(秒)', 30, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'StructurePickupHoldDuration', '拾取建筑按住时间(秒)', 0.5, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'OverrideStructurePlatformPrevention', '覆盖建筑平台限制', 'False', 'boolean', '建筑与腐坏');
+m(SEC_SERVER, 'AllowCaveBuildingPvE', 'PVE允许洞穴内建造', 'False', 'boolean', '洞穴与地堡');
+m(SEC_SERVER, 'AllowFlyerCarryPvE', 'PVE允许飞行龙抓取生物', 'False', 'boolean', '飞行与平台');
+m(SEC_SERVER, 'ServerPVE', 'PVE模式', 'False', 'boolean', 'PVP/PVE');
+m(SEC_SERVER, 'ServerHardcore', '硬核模式(死亡重置等级)', 'False', 'boolean', 'PVP/PVE');
+m(SEC_SERVER, 'AllowRaidDinoFeeding', '允许喂养Raid生物', 'False', 'boolean', '生物与玩家');
+m(SEC_SERVER, 'DisablePvEGamma', 'PVE禁用Gamma调节', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'DisableDinoDecayPvE', 'PVE禁用恐龙腐坏', 'False', 'boolean', '建筑与腐坏');
+m(SEC_SERVER, 'AllowThirdPersonPlayer', '允许第三人称视角', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'ServerCrosshair', '显示准星', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'ServerForceNoHUD', '强制禁用HUD', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'ShowMapPlayerLocation', '地图上显示玩家位置', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'EnablePvPGamma', '允许Gamma调节', 'True', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'ShowFloatingDamageText', '显示浮动伤害数字', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'AllowHitMarkers', '显示命中标记', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'OnlyAllowSpecifiedEngrams', '仅允许指定印痕', 'False', 'boolean', '其他');
+m(SEC_SERVER, 'GlobalVoiceChat', '全局语音聊天', 'False', 'boolean', '音频与语音');
+m(SEC_SERVER, 'ProximityChat', '附近语音聊天', 'False', 'boolean', '音频与语音');
+m(SEC_SERVER, 'NoTributeDownloads', '禁止方舟数据下载', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'PreventDownloadSurvivors', '禁止下载幸存者', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'PreventDownloadItems', '禁止下载物品', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'PreventDownloadDinos', '禁止下载恐龙', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'AlwaysNotifyPlayerLeft', '始终提示玩家离开', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'DontAlwaysNotifyPlayerJoined', '不始终提示玩家加入', 'False', 'boolean', '界面与HUD');
+m(SEC_SERVER, 'AdminLogging', '启用管理员操作日志', 'True', 'boolean', '网络与管理');
+m(SEC_SERVER, 'AllowHideDamageSourceFromLogs', '日志中隐藏伤害来源', 'True', 'boolean', '网络与管理');
+m(SEC_SERVER, 'PreventTribeAlliances', '禁止部落结盟', 'False', 'boolean', '部落');
+m(SEC_SERVER, 'TribeNameChangeCooldown', '部落改名冷却(分钟)', 15, 'number', '部落');
+m(SEC_SERVER, 'LimitBunkersPerTribe', '限制每部落地堡数量', 'True', 'boolean', '洞穴与地堡');
+m(SEC_SERVER, 'LimitBunkersPerTribeNum', '每部落地堡数量上限', 3, 'number', '洞穴与地堡');
+m(SEC_SERVER, 'AllowRidingDinosInsideBunkers', '允许地堡内骑乘', 'True', 'boolean', '洞穴与地堡');
+m(SEC_SERVER, 'AllowDinoAIInsideBunkers', '允许地堡内恐龙AI', 'True', 'boolean', '洞穴与地堡');
+m(SEC_SERVER, 'MinDistanceBetweenBunkers', '地堡最小间距', 3000, 'number', '洞穴与地堡');
+m(SEC_SERVER, 'EnemyAccessBunkerHPThreshold', '敌方进入地堡HP阈值', 0.25, 'number', '洞穴与地堡');
+m(SEC_SERVER, 'BunkerUnderHPThresholdDmgMultiplier', '地堡低HP时受伤倍率', 0.05, 'number', '洞穴与地堡');
+m(SEC_SERVER, 'MaxTamedDinos', '全局最大驯养恐龙数', 5000, 'number', '生物与玩家');
+m(SEC_SERVER, 'MaxTamedDinos_SoftTameLimit', '软上限-每部落驯养数', 5000, 'number', '生物与玩家');
+m(SEC_SERVER, 'MaxTamedDinos_SoftTameLimit_CountdownForDeletionDuration', '超软上限删除倒计时(秒)', 604800, 'number', '生物与玩家');
+m(SEC_SERVER, 'KickIdlePlayersPeriod', '踢出挂机玩家时间(秒)', 3600, 'number', '网络与管理');
+m(SEC_SERVER, 'AutoSavePeriodMinutes', '自动保存间隔(分钟)', 15, 'number', '网络与管理');
+m(SEC_SERVER, 'NeedsPowerToActivateAquaticCompartments', '水下隔间需供电', 'True', 'boolean', '建筑与腐坏');
+m(SEC_SERVER, 'ForceGachaUnhappyInCaves', '强制洞穴嘎查不满', 'True', 'boolean', '生物与玩家');
+m(SEC_SERVER, 'AllowAnyoneBabyImprintCuddle', '允许任何人留痕', 'False', 'boolean', '繁殖系统');
+m(SEC_SERVER, 'DisableImprintDinoBuff', '禁用留痕属性增益', 'False', 'boolean', '繁殖系统');
+m(SEC_SERVER, 'ForceResetWildDinos', '启动时重置野生龙', 'False', 'boolean', '生物与玩家');
+m(SEC_SERVER, 'PreventDiseases', '完全防止疾病', 'False', 'boolean', '生物与玩家');
+m(SEC_SERVER, 'NonPermanentDiseases', '疾病变为非永久', 'False', 'boolean', '生物与玩家');
+m(SEC_SERVER, 'EnableExtraStructurePreventionVolumes', '额外建筑防放置区域', 'False', 'boolean', '建筑与腐坏');
+m(SEC_SERVER, 'bAllowSpeedLeveling', '允许玩家加移速(ASA)', 'False', 'boolean', '飞行与平台');
+m(SEC_SERVER, 'bAllowFlyerSpeedLeveling', '允许飞行龙加移速(ASA)', 'False', 'boolean', '飞行与平台');
+m(SEC_SERVER, 'PreventOfflinePvPInterval', '离线PVP保护间隔(秒,-0=禁用)', -0, 'number', 'PVP/PVE');
+m(SEC_SERVER, 'RandomSupplyCratePoints', '随机补给光柱生成点', 'False', 'boolean', '战利品品质');
+m(SEC_SERVER, 'SupplyCrateLootQualityMultiplier', '补给光柱战利品品质倍率', 1.0, 'number', '战利品品质');
+m(SEC_SERVER, 'ActiveEvent', '当前激活的活动名称', 'None', 'string', '其他');
+m(SEC_SERVER, 'OverrideStartTime', '覆盖服务器启动时间', 'False', 'boolean', '时间与难度');
+m(SEC_SERVER, 'OverrideSecondsUntilBuriedTreasureAutoReveals', '埋藏宝箱自动揭示时间(秒)', 1209600, 'number', '其他');
+m(SEC_SERVER, 'RCONPort', 'RCON远程管理端口', 27020, 'number', '网络与管理');
+m(SEC_SERVER, 'RCONServerGameLogBuffer', 'RCON游戏日志缓冲(行)', 600, 'number', '网络与管理');
+m(SEC_SERVER, 'ItemStackSizeMultiplier', '物品堆叠数量倍率', 1.0, 'number', '采集与制作');
+m(SEC_SERVER, 'CraftingSkillBonusMultiplier', '制作技能品质加成倍率', 1.0, 'number', '采集与制作');
+m(SEC_SERVER, 'BloodforgeReinforceExtraDurability', '血炉强化额外耐久加成', 0.3, 'number', '其他');
+m(SEC_SERVER, 'BloodforgeReinforceResourceCostMultiplier', '血炉强化资源消耗倍率', 3, 'number', '其他');
+m(SEC_SERVER, 'BloodforgeReinforceSpeedMultiplier', '血炉强化速度倍率', 0.1, 'number', '其他');
+m(SEC_SERVER, 'CryoHospitalHoursToRegenHP', '冷冻舱恢复HP所需小时', 1, 'number', '其他');
+m(SEC_SERVER, 'CryoHospitalHoursToRegenFood', '冷冻舱恢复食物所需小时', 24, 'number', '其他');
+m(SEC_SERVER, 'CryoHospitalHoursToDrainTorpor', '冷冻舱清空眩晕所需小时', 1, 'number', '其他');
+m(SEC_SERVER, 'CryoHospitalMatingCooldownReduction', '冷冻舱交配冷却减少倍率', 2, 'number', '其他');
+m(SEC_SERVER, 'ImplantSuicideCD', '植入体自杀冷却(秒,28800=8h)', 28800, 'number', '其他');
+m(SEC_SERVER, 'OutpostSigilRewardMultiplier', '哨站徽记奖励倍率', 1, 'number', '其他');
+m(SEC_SERVER, 'DisableWeatherFog', '禁用天气雾气', 'False', 'boolean', '图形质量');
+m(SEC_SERVER, 'ListenServerTetherDistanceMultiplier', '非专用主机距离倍率', 1.0, 'number', '网络与管理');
+m(SEC_SERVER, 'DisableCryopodFridgeRequirement', '取消冷冻舱冰箱需求', 'False', 'boolean', '其他');
+m(SEC_SERVER, 'ServerPassword', '服务器密码', '', 'password', '网络与管理');
+m(SEC_SERVER, 'ServerAdminPassword', '管理员密码', '', 'password', '网络与管理');
+m(SEC_SERVER, 'RaidDinoCharacterFoodDrainMultiplier', 'Raid生物食物消耗倍率', 1.0, 'number', '生物与玩家');
+
+// --- [ScalabilityGroups] ---
+const SEC_SCAL = '[ScalabilityGroups]';
+['ResolutionQuality','ViewDistanceQuality','AntiAliasingQuality','ShadowQuality','GlobalIlluminationQuality','ReflectionQuality','PostProcessQuality','TextureQuality','EffectsQuality','FoliageQuality','ShadingQuality','LandscapeQuality'].forEach(k => {
+  const names = {'ResolutionQuality':'分辨率质量','ViewDistanceQuality':'视距质量','AntiAliasingQuality':'抗锯齿质量','ShadowQuality':'阴影质量','GlobalIlluminationQuality':'全局光照质量','ReflectionQuality':'反射质量','PostProcessQuality':'后期处理质量','TextureQuality':'纹理质量','EffectsQuality':'特效质量','FoliageQuality':'植被质量','ShadingQuality':'着色器质量','LandscapeQuality':'地形质量'};
+  m(SEC_SCAL, 'sg.' + k, names[k] + '(0=低,1=中,2=高,3=史诗)', 2, 'number', '图形质量');
+});
+
+// --- [/Script/ShooterGame.ShooterGameUserSettings] ---
+const SEC_USER = '[/Script/ShooterGame.ShooterGameUserSettings]';
+m(SEC_USER, 'AdvancedGraphicsQuality', '高级图形质量预设(0-3)', 0, 'number', '图形质量');
+m(SEC_USER, 'MasterAudioVolume', '主音量(0-1)', 1.0, 'number', '音频与语音');
+m(SEC_USER, 'MusicAudioVolume', '音乐音量(0-1)', 0.8, 'number', '音频与语音');
+m(SEC_USER, 'SFXAudioVolume', '音效音量(0-1)', 1.0, 'number', '音频与语音');
+m(SEC_USER, 'VoiceAudioVolume', '语音音量(0-1)', 1.0, 'number', '音频与语音');
+m(SEC_USER, 'SoundUIAudioVolume', 'UI音效音量(0-1)', 1.0, 'number', '音频与语音');
+m(SEC_USER, 'CharacterAudioVolume', '角色音效音量(0-1)', 1.0, 'number', '音频与语音');
+m(SEC_USER, 'AmbientSoundVolume', '环境音效音量(0-1)', 1.0, 'number', '音频与语音');
+m(SEC_USER, 'UIScaling', 'UI整体缩放', 1.0, 'number', '界面与HUD');
+m(SEC_USER, 'UIQuickbarScaling', '快捷栏缩放', 0.75, 'number', '界面与HUD');
+m(SEC_USER, 'CameraShakeScale', '镜头震动强度', 1.0, 'number', '界面与HUD');
+m(SEC_USER, 'bFirstPersonRiding', '骑乘时第一人称', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bFirstPersonShipDriving', '驾驶船时第一人称', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bThirdPersonPlayer', '玩家第三人称', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bShowStatusNotificationMessages', '显示状态通知', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'TrueSkyQuality', '真实天空质量', 0.27, 'number', '图形质量');
+m(SEC_USER, 'FOVMultiplier', '视野FOV倍率', 1.0, 'number', '图形质量');
+m(SEC_USER, 'GroundClutterDensity', '地面杂物密度', 1.0, 'number', '图形质量');
+m(SEC_USER, 'GroundClutterRadius', '地面杂物渲染半径', 0, 'number', '图形质量');
+m(SEC_USER, 'bFilmGrain', '胶片颗粒效果', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bUserMotionBlur', '动态模糊', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bUseDFAO', '距离场AO', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bUseSSAO', '屏幕空间AO', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bDistanceFieldShadowing', '距离场阴影', 'True', 'boolean', '图形质量');
+m(SEC_USER, 'bDisableShadows', '禁用阴影', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'LODScalar', 'LOD缩放', 1.0, 'number', '图形质量');
+m(SEC_USER, 'bDisableHLOD', '禁用HLOD', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bCinematicLightingMode', '电影级光照', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bEnableLowLightEnhancement', '低光增强', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bEnableFluidInteraction', '流体交互效果', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bShowChatBox', '显示聊天框', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bChatBubbles', '聊天气泡', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bTextChatBubbles', '文字聊天气泡', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bChatShowSteamName', '聊天显示平台名', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bChatShowTribeName', '聊天显示部落名', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bCameraViewBob', '走路镜头晃动', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bInvertLookY', '反转Y轴', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bFloatingNames', '浮动名称', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bHideServerInfo', '隐藏服务器信息', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bJoinNotifications', '玩家加入通知', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bDisableNameYourTamePopup', '禁用驯服命名弹窗', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'MinimalFloatingNameSetting', '最小化浮动名称', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bEnableColorGrading', '启用自定调色', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bDisableBloom', '禁用Bloom泛光', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bDisableLightShafts', '禁用光轴效果', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bUseLowQualityLevelStreaming', '低质量关卡流', 'True', 'boolean', '图形质量');
+m(SEC_USER, 'bUseDistanceFieldAmbientOcclusion', '距离场AO', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bHighQualityAnisotropicFiltering', '高质量各向异性过滤', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'LookLeftRightSensitivity', '横向灵敏度', 1.0, 'number', '界面与HUD');
+m(SEC_USER, 'LookUpDownSensitivity', '纵向灵敏度', 1.0, 'number', '界面与HUD');
+m(SEC_USER, 'GraphicsQuality', '图形整体预设(0-3)', 0, 'number', '图形质量');
+m(SEC_USER, 'ClientNetQuality', '客户端网络质量', 3, 'number', '网络与管理');
+m(SEC_USER, 'TheGammaCorrection', 'Gamma校正值', 0.5, 'number', '图形质量');
+m(SEC_USER, 'Gamma1', 'Gamma参数1', 2.2, 'number', '图形质量');
+m(SEC_USER, 'Gamma2', 'Gamma参数2', 3.0, 'number', '图形质量');
+m(SEC_USER, 'bTemperatureF', '华氏度(否则摄氏度)', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bDisableTorporEffect', '禁用眩晕视觉特效', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bNoBloodEffects', '禁用血液效果', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bLowQualityVFX', '低质量粒子特效', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bToggleToTalk', '语音切换模式', 'False', 'boolean', '音频与语音');
+m(SEC_USER, 'HighQualityMaterials', '高质量材质', 'True', 'boolean', '图形质量');
+m(SEC_USER, 'HighQualitySurfaces', '高质量表面', 'True', 'boolean', '图形质量');
+m(SEC_USER, 'bHighQualityLODs', '高质量LOD', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bExtraLevelStreamingDistance', '额外关卡流距离', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'VSyncModeType', '垂直同步(0=关,1=开,2=自适应)', 0, 'number', '图形质量');
+m(SEC_USER, 'bUseVSync', '使用垂直同步', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'ResolutionSizeX', '分辨率宽度', 1280, 'number', '图形质量');
+m(SEC_USER, 'ResolutionSizeY', '分辨率高度', 720, 'number', '图形质量');
+m(SEC_USER, 'FullscreenMode', '全屏模式(0=全屏,1=窗口全屏,2=窗口)', 1, 'number', '图形质量');
+m(SEC_USER, 'FrameRateLimit', '帧率限制FPS', 60.0, 'number', '图形质量');
+m(SEC_USER, 'bUseDynamicResolution', '动态分辨率', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'ScreenPercentage', '屏幕渲染百分比', 0.5, 'number', '图形质量');
+m(SEC_USER, 'bEnableHDROutput', '启用HDR输出', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'HDRDisplayMinLuminance', 'HDR最小亮度(log10)', -4.0, 'number', '图形质量');
+m(SEC_USER, 'HDRDisplayMidLuminance', 'HDR中等亮度(nits)', 20.0, 'number', '图形质量');
+m(SEC_USER, 'HDRDisplayMaxLuminance', 'HDR最大亮度(nits)', 1400.0, 'number', '图形质量');
+m(SEC_USER, 'bDisableMenuTransitions', '禁用菜单过渡动画', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bEnableInventoryItemTooltips', '库存物品提示', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'DisableMenuMusic', '禁用菜单音乐', 'False', 'boolean', '音频与语音');
+m(SEC_USER, 'DisableLoadScreenMusic', '禁用加载画面音乐', 'False', 'boolean', '音频与语音');
+m(SEC_USER, 'DisableSubtitles', '禁用字幕', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'ConsoleAccess', '控制台访问', 'False', 'boolean', '网络与管理');
+m(SEC_USER, 'MaxAscensionLevel', '最大飞升级别', 0, 'number', '其他');
+m(SEC_USER, 'EnableDLSS', 'DLSS(-1=自动,0=关,1=质量,2=平衡,3=性能)', -1, 'number', '图形质量');
+m(SEC_USER, 'bEnableDLFG', 'DLFG帧生成', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'bEnableReflex', 'NVIDIA Reflex低延迟', 'False', 'boolean', '图形质量');
+m(SEC_USER, 'SuperResolutionQualityLevel', '超分辨率质量(0-3)', 0, 'number', '图形质量');
+m(SEC_USER, 'Vibration', '手柄振动', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'HideItemTextOverlay', '隐藏物品文字覆盖', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bMinimalUI', '极简UI模式', 'False', 'boolean', '界面与HUD');
+m(SEC_USER, 'bShowPingsOnMap', '地图显示Ping标记', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bShowDinosOnMap', '地图显示驯养龙', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bShowPlayersOnMap', '地图显示部落玩家', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bShowBedsOnMap', '地图显示床/睡袋', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'bShowMissionsOnMap', '地图显示任务', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'MaxLastDeathMark', '最大死亡标记数', 5, 'number', '界面与HUD');
+m(SEC_USER, 'bSaveLastDeathMark', '保存死亡位置', 'True', 'boolean', '界面与HUD');
+m(SEC_USER, 'AimAssistStrengthMultiplier', '手柄瞄准辅助强度', 1.0, 'number', '界面与HUD');
+m(SEC_USER, 'CrosshairScale', '准星缩放', 1.0, 'number', '界面与HUD');
+m(SEC_USER, 'CrosshairOpacity', '准星不透明度', 1.0, 'number', '界面与HUD');
+
+// --- [/Script/Engine.GameSession] ---
+m('[/Script/Engine.GameSession]', 'MaxPlayers', '最大玩家数', 70, 'number', '网络与管理');
+
+// --- [SessionSettings] ---
+m('[SessionSettings]', 'SessionName', '服务器名称', '', 'string', '网络与管理');
+
+// --- [Startup] ---
+m('[Startup]', 'FrameGenerationMethod', '帧生成方法(-1=自动,0=关,1=FSR,2=DLSS)', -1, 'number', '图形质量');
+m('[Startup]', 'FrameGenerationMultiplier', '帧生成倍率', 2, 'number', '图形质量');
+m('[Startup]', 'SuperResolutionSystem', '超分辨率系统(-1=自动,0=关,1=FSR,2=DLSS)', -1, 'number', '图形质量');
+m('[Startup]', 'FSRQualityMode', 'FSR质量模式(0-4)', 4, 'number', '图形质量');
+m('[Startup]', 'DLSSQualityMode', 'DLSS质量模式', 7, 'number', '图形质量');
+m('[Startup]', 'ReflexEnabled', 'Reflex启用(-1=自动)', -1, 'number', '图形质量');
+
+// --- [AwesomeTeleporters] Mod ---
+m('[AwesomeTeleporters]', 'AdminsSeeAllTeleporters', '管理员看所有传送器', 'False', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportingToPlayers', '允许传到玩家身边', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportingToObelisks', '允许传到方尖碑', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportingWildDinos', '允许传送野生龙', 'False', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportersOnSaddles', '允许平台鞍放传送器', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'TeleportersAreTransmitters', '传送器作上传器', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportingVehicles', '允许传送载具', 'False', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'TeleportersRequirePower', '传送器需电力', 'False', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowCorpseFinder', '尸体查找器', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowFindDinos', '允许找恐龙', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'MeshDetection', '模型检测', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'BubbleDuration', '传送泡泡持续时间(秒)', 5, 'number', 'Mod:传送器');
+
+// --- [DerDinoFinder] Mod ---
+m('[DerDinoFinder]', 'AllowClientLanguage', '允许客户端语言', 'True', 'boolean', 'Mod:找龙');
+
+// --- 补充: Game.ini 之前缺失的参数 ---
+m(SEC_GAME, 'bDisableDinoBreeding', '完全禁止恐龙繁殖（True=无法交配）', 'False', 'boolean', '繁殖系统');
+m(SEC_GAME, 'CorpseLifeSpanMultiplier', '尸体存在时间倍率（值越大尸体保留越久才消失）', 1.0, 'number', '生物与玩家');
+m(SEC_GAME, 'ClampItemSpoilingTimes', '锁定物品腐坏时间上下限（True=限制最大/最小腐坏时间）', 'False', 'boolean', '生物与玩家');
+m(SEC_GAME, 'PlayerDamageMultiplier', '玩家造成的伤害倍率（值越大伤害越高，2=双倍伤害）', 1.0, 'number', '伤害倍率');
+m(SEC_GAME, 'DinoDamageMultiplier', '所有恐龙造成的伤害倍率（全局，值越大伤害越高）', 1.0, 'number', '伤害倍率');
+m(SEC_GAME, 'TamedDinoDamageMultiplier', '已驯服恐龙造成的伤害倍率（值越大伤害越高）', 1.0, 'number', '伤害倍率');
+m(SEC_GAME, 'WildDinoDamageMultiplier', '野生恐龙造成的伤害倍率（值越大伤害越高）', 1.0, 'number', '伤害倍率');
+m(SEC_GAME, 'StructureDamageMultiplier', '建筑受到的伤害倍率（值越大建筑越脆，>1=更容易被拆）', 1.0, 'number', '伤害倍率');
+m(SEC_GAME, 'PlayerResistanceMultiplier', '玩家承受伤害倍率（值越小越抗揍，0.5=只受50%伤害）', 1.0, 'number', '抗性倍率');
+m(SEC_GAME, 'DinoResistanceMultiplier', '所有恐龙承受伤害倍率（全局，值越小越肉）', 1.0, 'number', '抗性倍率');
+m(SEC_GAME, 'TamedDinoResistanceMultiplier', '已驯服恐龙承受伤害倍率（值越小越肉，0.5=半伤）', 1.0, 'number', '抗性倍率');
+m(SEC_GAME, 'WildDinoResistanceMultiplier', '野生恐龙承受伤害倍率（值越小越肉，>1=更脆）', 1.0, 'number', '抗性倍率');
+m(SEC_GAME, 'StructureResistanceMultiplier', '建筑抗性倍率（值越小越坚固，>1=更易损坏）', 1.0, 'number', '抗性倍率');
+m(SEC_GAME, 'bPvEDisableFriendlyFire', 'PVE禁用友方伤害（True=玩家/恐龙不会互相伤害）', 'False', 'boolean', 'PVP/PVE');
+m(SEC_GAME, 'bDisableGPS', '禁用GPS手持设备（True=无法使用GPS定位）', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableDinoAI', '完全禁用所有恐龙AI（True=所有野生龙静止不动）', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bDisableTorporEffect', '禁用眩晕特效（True=被打晕/麻醉时画面不模糊不扭曲，适合不喜欢特效的玩家）', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'bServerDisableMeleeSwingingThroughPlayers', '禁用近战攻击穿透友方玩家（True=无法隔山打牛）', 'False', 'boolean', '游戏功能');
+m(SEC_GAME, 'MaxPlatformSaddleStructureLimit', '平台鞍建筑绝对数量上限（0=不限制，>0=强制上限）', 0, 'number', '建筑与腐坏');
+m(SEC_GAME, 'DayCycleSpeedScale', '整体日夜循环速度倍率（值越大白天+黑夜过得越快）', 1.0, 'number', '时间与难度');
+m(SEC_GAME, 'HexagonRewardMultiplier', 'Hexagon六角币奖励倍率（创世纪/灭绝地图相关）', 1.0, 'number', '其他');
+m(SEC_GAME, 'bAllowMultipleC4PerDino', '允许同一只恐龙贴多个C4炸药（True=可叠加爆破）', 'False', 'boolean', 'PVP/PVE');
+m(SEC_GAME, 'MaximumBumpIncrements', '爆炸物最大连锁Bump次数（0=默认/无限制，限制C4连爆）', 0, 'number', 'PVP/PVE');
+
+// --- 补充: GameUserSettings.ini 之前缺失的参数 ---
+m(SEC_SERVER, 'RCONEnabled', '启用RCON远程管理端口（True=开放27020端口远程控制）', 'False', 'boolean', '网络与管理');
+m(SEC_SERVER, 'RCONPassword', 'RCON独立密码（留空则使用ServerAdminPassword，用于服务器远程管理工具连接）', '', 'password', '网络与管理');
+m(SEC_SERVER, 'ServerMotd', '服务器每日公告（Message of the Day，玩家进服时显示在聊天框）', '', 'string', '网络与管理');
+m(SEC_SERVER, 'BanListURL', '远程封禁列表URL（服务器自动从该地址同步封禁名单）', '', 'string', '网络与管理');
+m(SEC_SERVER, 'EnablePlayerListing', '在服务器列表中显示玩家详情（True=其他人可看到谁在线）', 'True', 'boolean', '网络与管理');
+m(SEC_SERVER, 'bIgnoreServerFull', '管理员是否无视满员限制进服（True=满员时管理员仍可加入）', 'False', 'boolean', '网络与管理');
+m(SEC_SERVER, 'SpectatorPassword', '观察者/观众密码（输入后以旁观模式进入，不参与游戏）', '', 'password', '网络与管理');
+m(SEC_SERVER, 'ServerAutoForceRespawnWildDinosInterval', '自动强制刷新野生龙间隔（秒，0=禁用，3600=每小时刷新一次）', 0, 'number', '生物与玩家');
+m(SEC_SERVER, 'UseServerNetSpeedCheck', '检测客户端网络速度（True=踢出网络不达标的玩家）', 'True', 'boolean', '网络与管理');
+m(SEC_SERVER, 'DisableEncryption', '禁用网络加密（True=不加密通信，仅调试用，不建议开启）', 'False', 'boolean', '网络与管理');
+m(SEC_SERVER, 'bPvEAllowStructuresAtSupplyDrops', 'PVE允许在空投补给点附近建造（True=可在光柱落点附近建家）', 'False', 'boolean', 'PVP/PVE');
+m(SEC_SERVER, 'PvEStructureDecayPeriodMultiplier', 'PVE建筑腐坏周期倍率（值越大腐坏越慢，>1=更长的维护间隔）', 1.0, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'PvEStructureDecayDestructionPeriod', 'PVE建筑腐坏后可被他人拆除的时间（小时，0=永不可拆除）', 0, 'number', '建筑与腐坏');
+m(SEC_SERVER, 'NPCNetworkStasisRangeScalePercent', 'NPC休眠范围缩放（值越小=休眠范围越小=活跃龙越多=服务器负载越高）', 1.0, 'number', '网络与管理');
+m(SEC_SERVER, 'TetheringDistanceMultiplier', '非专用主机玩家最远距离倍率（值越大玩家可以离主机越远）', 1.0, 'number', '网络与管理');
+m(SEC_SERVER, 'bDisableWorldBosses', '禁用世界Boss（True=泰坦等世界Boss不会出现）', 'False', 'boolean', '生物与玩家');
+m(SEC_SERVER, 'ShowCreativeMode', '允许使用创造模式（True=玩家可使用上帝模式/GCM命令）', 'False', 'boolean', '游戏功能');
+m(SEC_SERVER, 'CrossARKAllowForeignDinoDownloads', '允许从其他ARK集群下载恐龙（True=不同服务器组间可传龙）', 'True', 'boolean', '下载与上传');
+m(SEC_SERVER, 'MaxTributeDinos', '方舟数据中最大恐龙存放数（0=默认限制，限制上传恐龙数量）', 0, 'number', '下载与上传');
+m(SEC_SERVER, 'MaxTributeItems', '方舟数据中最大物品存放数（0=默认限制，限制上传物品数量）', 0, 'number', '下载与上传');
+m(SEC_SERVER, 'TributeDinoExpirationSeconds', '上传的恐龙过期时间（秒，86400=24h，到期自动删除）', 86400, 'number', '下载与上传');
+m(SEC_SERVER, 'TributeItemExpirationSeconds', '上传的物品过期时间（秒，86400=24h，到期自动删除）', 86400, 'number', '下载与上传');
+m(SEC_SERVER, 'bDisableCharacterDownload', '禁止下载角色（True=无法从方舟数据下载幸存者）', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'bDisableDinoDownload', '禁止下载恐龙（True=无法从方舟数据下载已上传的龙）', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'bDisableItemDownload', '禁止下载物品（True=无法从方舟数据下载已上传的物品）', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'bDisableInventoryOnCharacterDownload', '下载角色时清空背包（True=跨服传送后背包物品消失）', 'False', 'boolean', '下载与上传');
+m(SEC_SERVER, 'bDisablePvPDinoDecay', 'PVP下禁用恐龙自然腐坏（True=PVP服恐龙不会自动消失）', 'False', 'boolean', 'PVP/PVE');
+m(SEC_SERVER, 'PvPDinoDecayPeriodMultiplier', 'PVP恐龙腐坏周期倍率（值越大腐坏越慢，<1=更快消失）', 1.0, 'number', 'PVP/PVE');
+m(SEC_SERVER, 'PvPStructureDecayPeriodMultiplier', 'PVP建筑腐坏周期倍率（值越大腐坏越慢，<1=更快消失）', 1.0, 'number', 'PVP/PVE');
+
+// ============================================================================
+// INI PARSER
+// ============================================================================
+function parseINI(text) {
+  const lines = text.split(/\r?\n/);
+  const sections = [];
+  let currentSection = null;
+  let pendingComments = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    // Empty line
+    if (trimmed === '') {
+      if (currentSection) {
+        if (pendingComments.length > 0) {
+          currentSection.properties.push({ type: 'comment', comments: [...pendingComments], raw: '' });
+          pendingComments = [];
+        }
+        currentSection.properties.push({ type: 'blank', raw });
+      }
+      continue;
+    }
+
+    // Comment line (; or # at start)
+    if (trimmed.startsWith(';') || trimmed.startsWith('#')) {
+      pendingComments.push(raw);
+      continue;
+    }
+
+    // Section header
+    const secMatch = trimmed.match(/^\[(.+)\]$/);
+    if (secMatch) {
+      if (currentSection) {
+        currentSection.trailing = pendingComments.length > 0 ? [...pendingComments] : [];
+        pendingComments = [];
+      }
+      currentSection = {
+        name: secMatch[1],
+        rawName: trimmed,
+        headerComments: [...pendingComments],
+        properties: [],
+        trailing: []
+      };
+      pendingComments = [];
+      sections.push(currentSection);
+      continue;
+    }
+
+    // Key=Value
+    const kvMatch = trimmed.match(/^([^=]+?)=(.*)$/);
+    if (kvMatch) {
+      const key = kvMatch[1].trim();
+      let value = kvMatch[2];
+
+      // Extract inline comment
+      let inlineComment = '';
+      const commentIdx = findCommentIndex(value);
+      if (commentIdx >= 0) {
+        inlineComment = value.substring(commentIdx);
+        value = value.substring(0, commentIdx).trimEnd();
+      }
+      value = value.trim();
+
+      if (!currentSection) {
+        // Orphan property — put in a "global" section
+        currentSection = { name: '', rawName: '', headerComments: [], properties: [], trailing: [] };
+        sections.push(currentSection);
+      }
+
+      currentSection.properties.push({
+        type: 'property',
+        key,
+        value,
+        raw,
+        inlineComment,
+        comments: [...pendingComments]
+      });
+      pendingComments = [];
+      continue;
+    }
+
+    // Metadata line (not a comment, not a section, not kv) — treat as raw
+    if (currentSection) {
+      currentSection.properties.push({ type: 'raw', raw, comments: [...pendingComments] });
+      pendingComments = [];
+    }
+  }
+
+  // Trailing comments for last section
+  if (currentSection && pendingComments.length > 0) {
+    currentSection.trailing.push(...pendingComments);
+  }
+
+  return sections;
+}
+
+function findCommentIndex(str) {
+  // Find ; or # that starts a comment, but not inside quotes
+  let inQuote = false;
+  let quoteChar = '';
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (inQuote) {
+      if (ch === quoteChar) inQuote = false;
+      continue;
+    }
+    if (ch === '"' || ch === "'") { inQuote = true; quoteChar = ch; continue; }
+    if (ch === ';' || ch === '#') return i;
+  }
+  return -1;
+}
+
+// ============================================================================
+// INI WRITER
+// ============================================================================
+function writeINI(sections) {
+  const lines = [];
+  for (const sec of sections) {
+    // Header comments
+    if (sec.headerComments) lines.push(...sec.headerComments);
+    // Section name
+    if (sec.rawName) lines.push(sec.rawName);
+
+    for (const prop of sec.properties) {
+      if (prop.type === 'blank') {
+        lines.push(prop.raw);
+      } else if (prop.type === 'comment') {
+        if (prop.raw) lines.push(prop.raw);
+        else lines.push(...prop.comments);
+      } else if (prop.type === 'property') {
+        if (prop.comments && prop.comments.length > 0) lines.push(...prop.comments);
+        if (prop._modified !== undefined) {
+          // This property was modified — reconstruct the line
+          const comment = prop.inlineComment ? ' ' + prop.inlineComment : '';
+          lines.push(`${prop.key}=${prop.value}${comment}`);
+        } else {
+          lines.push(prop.raw);
+        }
+      } else if (prop.type === 'raw') {
+        lines.push(prop.raw);
+      }
+    }
+
+    // Trailing comments
+    if (sec.trailing && sec.trailing.length > 0) lines.push(...sec.trailing);
+  }
+  return lines.join('\n');
+}
+
+// ============================================================================
+// VUE APPLICATION
+// ============================================================================
+const app = createApp({
+  setup() {
+    // --- State ---
+    const isDragging = ref(false);
+    const isDark = ref(true);
+    const activeTab = ref('gameusersettings'); // 'game' | 'gameusersettings' | 'mods'
+    const showIntro = ref(false);
+
+    // --- Mod Search ---
+    const modQuery = ref('');
+    const modResults = ref([]);
+    const modSearched = ref(false);
+    const modPage = ref(0);
+    const modTotal = ref(0);
+    const modPageSize = 15;
+
+    // 内置热门 Mod 列表（CurseForge API 不可用时的离线数据）
+    const MOD_LIST = [
+      { id: 928595, name: 'Awesome Teleporters!', summary: '传送器/远程传送系统，支持跨地图传送、恐龙传送、尸体找回', cat: '便利' },
+      { id: 930823, name: 'Der Dino Finder', summary: '恐龙查找器，追踪已驯服恐龙位置、显示属性', cat: '便利' },
+      { id: 931008, name: 'Super Spyglass Plus', summary: '超级望远镜，显示恐龙详细属性、等级、加点分布', cat: '便利' },
+      { id: 935617, name: 'Upgrade Station', summary: '升级站，用材料升级武器/护甲品质', cat: '便利' },
+      { id: 928613, name: 'Automated Ark', summary: '自动化方舟，自动收集蛋/粪便/作物等', cat: '自动化' },
+      { id: 936443, name: 'Visual Storage', summary: '可视化储物箱，物品以3D模型展示在外', cat: '建筑' },
+      { id: 931307, name: 'Utilities Plus', summary: '工具增强，回收建筑/传送/修理等功能', cat: '便利' },
+      { id: 928542, name: 'Structures Plus (S+)', summary: '建筑增强模组，S+经典功能复刻', cat: '建筑' },
+      { id: 929114, name: 'Dino Depot', summary: '恐龙仓库/冷冻舱系统，可存储和提取恐龙', cat: '便利' },
+      { id: 931274, name: 'Better Breeding', summary: '繁殖增强，显示属性继承、自动配对', cat: '繁殖' },
+      { id: 989087, name: 'Cybers Structures', summary: 'Cyber建筑模组，大量新建筑和装饰', cat: '建筑' },
+      { id: 931487, name: 'Gryphons', summary: '狮鹫生物模组，可驯服狮鹫', cat: '生物' },
+      { id: 952563, name: 'Paleo Ark - Apex Predators', summary: '古生物模组，新增多种史前生物', cat: '生物' },
+      { id: 931604, name: 'ARK Additions: The Collection!', summary: '方舟生物补充包，多种新生物合集', cat: '生物' },
+      { id: 929118, name: 'Death Recovery Mod', summary: '死亡恢复模组，死后自动找回背包', cat: '便利' },
+      { id: 933343, name: 'Improved Dinos', summary: '恐龙增强，调整属性平衡和技能', cat: '生物' },
+      { id: 935982, name: 'Pull It', summary: '批量拉取物品，一键整理库存', cat: '便利' },
+      { id: 928548, name: 'Awesome Spyglass!', summary: '望远镜增强版，显示详细恐龙信息', cat: '便利' },
+      { id: 939487, name: 'Nanohs Reusables', summary: '可重复使用工具，投掷物回收', cat: '便利' },
+      { id: 931229, name: 'QoL+', summary: '生活质量增强合集，传送/回收/自动化', cat: '便利' },
+      { id: 932762, name: 'Svartalfheim', summary: '矮人国度地图模组，全新北欧主题地图', cat: '地图' },
+      { id: 934345, name: 'Prehistoric Beasts', summary: '史前巨兽模组，新增大型史前生物', cat: '生物' },
+      { id: 944457, name: 'Forge', summary: '锻造系统，自定义制作物品和武器', cat: '制作' },
+      { id: 939991, name: 'Better Cosmetics', summary: '化妆品增强，更多皮肤和自定义选项', cat: '外观' },
+      { id: 928655, name: 'Dino Mindwipe', summary: '恐龙洗点药水，重置已驯服恐龙属性点', cat: '便利' },
+      { id: 933311, name: 'Crafting Skill Potion', summary: '制作技能药水，临时提升制作技能', cat: '制作' },
+      { id: 934777, name: 'Marniimods: Wildlife', summary: '野生动物模组，新增多种生物和变种', cat: '生物' },
+      { id: 929713, name: 'Supermaket', summary: '超市模组，交易和商店系统', cat: '经济' },
+      { id: 939069, name: 'Custom Dino Levels', summary: '自定义恐龙等级分布，调整野生龙等级', cat: '平衡' },
+      { id: 931874, name: 'Shiny! Dinos', summary: '闪光恐龙模组，稀有闪光变异皮肤', cat: '外观' },
+      { id: 929440, name: 'Pelayoris Cryo Storage', summary: '冷冻存储，替代原版冷冻舱', cat: '便利' },
+      { id: 928525, name: 'Potions', summary: '药水模组，各种功能性药水', cat: '制作' },
+    ];
+
+    async function searchMods(page) {
+      if (page !== undefined) modPage.value = page;
+      else modPage.value = 0;
+      modSearched.value = true;
+      const q = modQuery.value.trim().toLowerCase();
+
+      let list = MOD_LIST;
+      if (q) {
+        list = MOD_LIST.filter(m =>
+          m.name.toLowerCase().includes(q) || m.summary.toLowerCase().includes(q) ||
+          String(m.id).includes(q) || m.cat.includes(q)
+        );
+      }
+      modTotal.value = list.length;
+      const start = modPage.value * modPageSize;
+      modResults.value = list.slice(start, start + modPageSize);
+    }
+
+    function copyModId(id) {
+      navigator.clipboard.writeText(String(id)).catch(() => {});
+    }
+
+    function formatNum(n) {
+      if (!n) return '0';
+      if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+      return String(n);
+    }
+    const searchQuery = ref('');
+    const selectedCategory = ref(null);
+    const showModifiedOnly = ref(false);
+    const sortKey = ref('key');
+    const sortAsc = ref(true);
+
+    // File handles (one per tab)
+    const fileHandles = reactive({ game: null, gameusersettings: null });
+    // Parsed sections per tab
+    const tabSections = reactive({ game: [], gameusersettings: [] });
+
+    // Edit modal
+    const editing = ref(null);
+    const editValue = ref('');
+    const editError = ref('');
+    const editInput = ref(null);
+
+    // Drag counter (for nested elements)
+    let dragCounter = 0;
+
+    // --- Computed ---
+    const currentSections = computed(() => tabSections[activeTab.value] || []);
+    const fileHandle = computed(() => fileHandles[activeTab.value]);
+
+    const allParams = computed(() => {
+      const result = [];
+      // 只显示服务器管理相关的 Section，忽略客户端/Mod/用户偏好等
+      const RELEVANT = ['[/Script/ShooterGame.ShooterGameMode]', '[ServerSettings]'];
+      for (const sec of currentSections.value) {
+        const sectionFull = '[' + sec.name + ']';
+        if (!RELEVANT.includes(sectionFull)) continue;
+        for (const prop of sec.properties) {
+          if (prop.type !== 'property') continue;
+          const meta = findMeta(sectionFull, prop.key);
+          const defVal = meta?.d || '';
+          result.push({
+            section: sectionFull,
+            sectionShort: sec.name,
+            key: prop.key,
+            value: prop.value,
+            rawComment: prop.inlineComment?.replace(/^[;#]\s*/, '') || '',
+            meta,
+            isModified: defVal !== '' && String(prop.value) !== String(defVal),
+            prop,
+            sec
+          });
+        }
+      }
+      return result;
+    });
+
+    const hasData = computed(() => currentSections.value.length > 0);
+    const isModified = computed(() => allParams.value.some(p => p.isModified));
+    const modifiedCount = computed(() => allParams.value.filter(p => p.isModified).length);
+
+    // Categories from all params
+    const categories = computed(() => {
+      const cats = new Set();
+      for (const p of allParams.value) {
+        if (p.meta?.c) cats.add(p.meta.c);
+        else cats.add('未分类');
+      }
+      const freqOrder = { '🟢':0, '🟡':1, '🔴':2 };
+      return [...cats].sort((a, b) => {
+        const fa = freqOrder[catFreq[a]] ?? 3;
+        const fb = freqOrder[catFreq[b]] ?? 3;
+        if (fa !== fb) return fa - fb;
+        return a.localeCompare(b, 'zh');
+      });
+    });
+
+    // Category icons
+    const catIcons = {
+      '经验倍率': '⚡', '采集与制作': '⛏️', '繁殖系统': '🐣', '属性成长(驯服龙)': '📈',
+      '属性成长(野生龙)': '🦎', '属性成长(玩家)': '🧑', '生物与玩家': '🦖', '农作物与燃料': '🌾',
+      '资源刷新': '🪨', '战利品品质': '🎁', 'PVP/PVE': '⚔️', '难度与模式': '🎯',
+      '游戏功能': '🎮', '飞行与平台': '🦅', '建筑与腐坏': '🏗️', '洞穴与地堡': '⛰️',
+      '界面与HUD': '🖥️', '音频与语音': '🔊', '图形质量': '🎨', '网络与管理': '🌐',
+      '部落': '🏛️', '下载与上传': '📤', '时间与难度': '⏰', '其他': '📌',
+      'Mod:传送器': '🌀', 'Mod:找龙': '🔎', '伤害倍率': '💢', '抗性倍率': '🛡️', '未分类': '❓'
+    };
+    // 🟢=高频必调 🟡=中频按需 🔴=低频特殊
+    const catFreq = {
+      '经验倍率': '🟢', '采集与制作': '🟢', '繁殖系统': '🟢', '属性成长(驯服龙)': '🟢',
+      '属性成长(玩家)': '🟢', '难度与模式': '🟢', '时间与难度': '🟢', '游戏功能': '🟢',
+      '建筑与腐坏': '🟢', '网络与管理': '🟢',
+      '属性成长(野生龙)': '🟡', '生物与玩家': '🟡', '农作物与燃料': '🟡',
+      '资源刷新': '🟡', '战利品品质': '🟡', 'PVP/PVE': '🟡', '飞行与平台': '🟡',
+      '洞穴与地堡': '🟡', '界面与HUD': '🟡', '音频与语音': '🟡', '部落': '🟡',
+      '下载与上传': '🟡', '伤害倍率': '🟡', '抗性倍率': '🟡',
+      '图形质量': '🔴', '其他': '🔴', 'Mod:传送器': '🔴', 'Mod:找龙': '🔴', '未分类': '🔴'
+    };
+
+    // 分类联动说明
+    const catNotes = {
+      '采集与制作':
+        '<b>这四个参数是相乘关系，共同决定采集效率：</b><br><br>' +
+        '总资源量 = 基础 × <span class="formula">HarvestAmount</span> × <span class="formula">HarvestHealth</span><br>' +
+        '采集速度(恐龙) = <span class="formula">HarvestHealth ÷ DinoHarvestingDamage</span><br>' +
+        '采集速度(玩家) = <span class="formula">HarvestHealth ÷ PlayerHarvestingDamage</span><br><br>' +
+        '<b>示例：</b>Amount=3, Health=1.2, DinoDmg=3.2<br>' +
+        '→ 每棵树产出 <b>3.6倍</b> 资源，恐龙 <b>2.7倍速</b> 砍完<br>' +
+        '<span class="warn">⚠ 注意：PlayerHarvestingDamage 要跟上 Health 的增幅，否则玩家手砍反而更慢</span>',
+
+      '繁殖系统':
+        '<b>这些参数控制从交配到成年的完整链路：</b><br><br>' +
+        '① 交配 ← <span class="formula">MatingInterval</span>（越小越频繁）<br>' +
+        '② 产蛋 ← <span class="formula">LayEggInterval</span>（越小蛋越多）<br>' +
+        '③ 孵化 ← <span class="formula">EggHatchSpeed</span>（越大越快破壳）<br>' +
+        '④ 成长 ← <span class="formula">BabyMatureSpeed</span>（越大越快到成年）<br>' +
+        '⑤ 留痕 ← <span class="formula">BabyCuddleInterval</span>（越小机会越多）<br>' +
+        '⑥ 留痕质量 ← <span class="formula">BabyImprintingStatScale</span>（越大属性加成越高）<br><br>' +
+        '<b>快繁殖服常用配置：</b> Mating=0.01, EggHatch=10, Mature=10, Cuddle=0.1',
+
+      '属性成长(驯服龙)':
+        '<b>驯服后恐龙的属性由三层倍率叠加决定：</b><br><br>' +
+        '最终成长 = <span class="formula">基础(DinoTamed)</span> + <span class="formula">额外(DinoTamed_Add)</span><br>' +
+        '驯服满有效性奖励 = <span class="formula">亲和性(DinoTamed_Affinity)</span><br><br>' +
+        '<b>三层的关系：</b><br>' +
+        '· <span class="formula">DinoTamed</span> — 每次加点的基础成长值<br>' +
+        '· <span class="formula">DinoTamed_Add</span> — 额外叠加的成长值<br>' +
+        '· <span class="formula">DinoTamed_Affinity</span> — 驯服完成时根据有效性一次性奖励的点数<br><br>' +
+        '每级实际 = (基础值 × DinoTamed) + (基础值 × DinoTamed_Add)<br>' +
+        '驯服奖励 = 基础值 × Affinity × 驯服有效性%',
+
+      '属性成长(玩家)':
+        '<b>玩家每级属性提升 = 基础值 × 倍率</b><br><br>' +
+        '例：默认每级+10负重，设 Player[7]=3 → 每级+30负重<br>' +
+        '<span class="warn">⚠ ASA默认禁止加移速（Player[9]），若要允许需同时开启 bAllowSpeedLeveling=True</span>',
+
+      '伤害倍率':
+        '<b>最终伤害 = 基础伤害 × 双方倍率</b><br><br>' +
+        '造成伤害 = 基础 × <span class="formula">伤害倍率</span>（如 TamedDinoDamage）<br>' +
+        '承受伤害 = 攻击力 × <span class="formula">抗性倍率</span>（如 TamedDinoResistance）<br><br>' +
+        '<b>关系：</b>伤害倍率 ÷ 抗性倍率 = 实际伤害比例<br>' +
+        '例：TamedDinoDamage=2, TamedDinoResistance=1 → 驯服龙打驯服龙是2倍伤<br>' +
+        '例：TamedDinoDamage=1, TamedDinoResistance=0.5 → 驯服龙打驯服龙也是2倍伤<br><br>' +
+        '<span class="warn">⚠ 伤害倍率和抗性倍率效果相同但方向相反，不要同时改，选其一即可</span>',
+
+      '抗性倍率':
+        '<b>抗性倍率越小 = 越抗揍</b>（注意方向！）<br><br>' +
+        '实际受伤 = 攻击方伤害 × <span class="formula">(1 / 抗性倍率)</span><br>' +
+        '例：抗性=1 → 100% 伤害，抗性=2 → 200% 伤害（更脆）<br>' +
+        '例：抗性=0.5 → 50% 伤害（更肉），抗性=0.1 → 10% 伤害（几乎无敌）<br><br>' +
+        '<span class="warn">⚠ 和伤害倍率效果相同但方向相反，建议只改伤害倍率，抗性保持1.0</span>',
+
+      '难度与模式':
+        '<b>难度决定野生龙等级范围：</b><br><br>' +
+        '最大等级 = <span class="formula">DifficultyOffset × 150</span>（需 MaxDifficulty=True）<br>' +
+        '等级步长 = <span class="formula">Offset × 30</span>，向上取整到最近的步长<br><br>' +
+        '例：Offset=1.0 → 龙等级为 5,10,15...145,150<br>' +
+        '例：Offset=0.2 → 龙等级为 1,2,3...30（默认低难度）<br><br>' +
+        '<span class="warn">⚠ Game.ini 中 MaxDifficulty=True 会让野生龙最高到150级（泰克180）</span>',
+
+      '时间与难度':
+        '<b>控制白天夜晚的时长比例：</b><br><br>' +
+        '实际白天长度 = 基础 / <span class="formula">DayTimeSpeedScale</span><br>' +
+        '实际夜晚长度 = 基础 / <span class="formula">NightTimeSpeedScale</span><br>' +
+        '全天循环速度 = 基础 / <span class="formula">DayCycleSpeedScale</span>（Game.ini）<br><br>' +
+        '例：Day=0.5 → 白天2倍长，Night=2 → 夜晚2倍速过<br>' +
+        '→ 结果是<b>白天很长、夜晚很短</b>，适合不喜欢夜晚的玩家<br><br>' +
+        '<span class="warn">⚠ DayCycleSpeedScale 是全局倍率，会同时影响白天和夜晚，一般不动它</span>',
+    };
+
+    // 当前分类的联动说明
+    const catNote = computed(() => {
+      if (!selectedCategory.value) return null;
+      return catNotes[selectedCategory.value] || null;
+    });
+
+    const filteredParams = computed(() => {
+      let list = [...allParams.value];
+
+      // Category filter
+      if (selectedCategory.value) {
+        list = list.filter(p => (p.meta?.c || '未分类') === selectedCategory.value);
+      }
+
+      // Search filter
+      const q = searchQuery.value.toLowerCase().trim();
+      if (q) {
+        list = list.filter(p =>
+          p.key.toLowerCase().includes(q) ||
+          (p.meta?.n || '').toLowerCase().includes(q) ||
+          p.value.toLowerCase().includes(q) ||
+          p.sectionShort.toLowerCase().includes(q)
+        );
+      }
+
+      // Modified only
+      if (showModifiedOnly.value) {
+        list = list.filter(p => p.isModified);
+      }
+
+      // Sort
+      list.sort((a, b) => {
+        let va, vb;
+        if (sortKey.value === 'key') { va = a.key.toLowerCase(); vb = b.key.toLowerCase(); }
+        else if (sortKey.value === 'value') { va = a.value; vb = b.value; }
+        else { va = a.key; vb = b.key; }
+        if (va < vb) return sortAsc.value ? -1 : 1;
+        if (va > vb) return sortAsc.value ? 1 : -1;
+        return 0;
+      });
+
+      return list;
+    });
+
+    // --- Methods ---
+    function findMeta(sectionFull, key) {
+      const sl = sectionFull.toLowerCase();
+      const kl = key.toLowerCase();
+      // Exact match
+      if (META[sl]?.[kl]) return META[sl][kl];
+      // Try array index match (e.g., PerLevelStatsMultiplier_DinoTamed[0])
+      const arrMatch = key.match(/^(.+)\[\d+\]$/);
+      if (arrMatch && META[sl]?.[arrMatch[1].toLowerCase() + '[0]']) {
+        return META[sl][arrMatch[1].toLowerCase() + '[0]'];
+      }
+      return null;
+    }
+
+    function catCount(cat) {
+      return allParams.value.filter(p => (p.meta?.c || '未分类') === cat).length;
+    }
+
+    function catModifiedCount(cat) {
+      return allParams.value.filter(p => (p.meta?.c || '未分类') === cat && p.isModified).length;
+    }
+
+    function toggleSort(key) {
+      if (sortKey.value === key) sortAsc.value = !sortAsc.value;
+      else { sortKey.value = key; sortAsc.value = true; }
+    }
+
+    function switchTab(tab) {
+      activeTab.value = tab;
+      selectedCategory.value = null;
+      searchQuery.value = '';
+      showModifiedOnly.value = false;
+      if (tab === 'mods') { modQuery.value = ''; modResults.value = MOD_LIST; modSearched.value = true; }
+    }
+
+    // --- File Operations ---
+    async function openFile() {
+      try {
+        let handle, file;
+        // Try File System Access API first
+        if (window.showOpenFilePicker) {
+          [handle] = await window.showOpenFilePicker({
+            types: [{ description: 'INI Files', accept: { 'text/plain': ['.ini'] } }],
+            startIn: 'documents'
+          });
+          file = await handle.getFile();
+        } else {
+          // Fallback: use input element
+          file = await new Promise((resolve, reject) => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.ini';
+            input.onchange = () => {
+              const f = input.files[0];
+              if (f) resolve(f);
+              else reject(new Error('No file selected'));
+            };
+            input.click();
+          });
+        }
+        await loadFile(file, handle);
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error('Open file error:', e);
+      }
+    }
+
+    function processFile(file, handle) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ text: reader.result, handle, file });
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    async function loadFile(file, handle) {
+      const { text } = await processFile(file, handle);
+      const sections = parseINI(text);
+
+      // Detect file type
+      const hasServerSettings = sections.some(s => s.name === 'ServerSettings');
+      const tab = hasServerSettings ? 'gameusersettings' : 'game';
+
+      tabSections[tab] = sections;
+      if (handle) fileHandles[tab] = handle;
+      else fileHandles[tab] = { name: file.name };
+      activeTab.value = tab;
+      selectedCategory.value = null;
+      searchQuery.value = '';
+      showModifiedOnly.value = false;
+    }
+
+    async function saveFile() {
+      const handle = fileHandles[activeTab.value];
+      if (!handle) return;
+
+      const text = writeINI(tabSections[activeTab.value]);
+
+      try {
+        if (handle.createWritable) {
+          // File System Access API — write directly
+          const writable = await handle.createWritable();
+          await writable.write(text);
+          await writable.close();
+        } else {
+          // Fallback download
+          downloadFile();
+          return;
+        }
+      } catch (e) {
+        console.error('Save error:', e);
+        alert('保存失败: ' + e.message + '\n\n将使用下载方式代替。');
+        downloadFile();
+      }
+    }
+
+    function downloadFile() {
+      const text = writeINI(tabSections[activeTab.value]);
+      const name = activeTab.value === 'gameusersettings' ? 'GameUserSettings.ini' : 'Game.ini';
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // --- Templates ---
+    const template = ref('');
+    watch(template, (val) => {
+      if (!val) return;
+      template.value = ''; // reset
+      const isGame = val.endsWith('-game');
+      const isHigh = val.startsWith('high-');
+      const name = isGame ? 'Game.ini' : 'GameUserSettings.ini';
+      let text = '';
+      if (isGame) {
+        text = isHigh ? highRateGame : officialGame;
+      } else {
+        text = isHigh ? highRateGUS : officialGUS;
+      }
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    const officialGame =
+`;METADATA=(Diff=true, UseCommands=true)
+[/Script/ShooterGame.ShooterGameMode]
+HarvestXPMultiplier=1
+CraftXPMultiplier=1
+KillXPMultiplier=1
+GenericXPMultiplier=1
+SpecialXPMultiplier=1
+ExplorerNoteXPMultiplier=1
+BossKillXPMultiplier=1
+AlphaKillXPMultiplier=1
+WildKillXPMultiplier=1
+CaveKillXPMultiplier=1
+TamedKillXPMultiplier=1
+UnclaimedKillXPMultiplier=1
+DinoHarvestingDamageMultiplier=1
+PlayerHarvestingDamageMultiplier=1
+CustomRecipeEffectivenessMultiplier=1
+CustomRecipeSkillMultiplier=1
+BabyMatureSpeedMultiplier=1
+EggHatchSpeedMultiplier=1
+MatingIntervalMultiplier=1
+LayEggIntervalMultiplier=1
+BabyCuddleIntervalMultiplier=1
+BabyFoodConsumptionSpeedMultiplier=1
+BabyImprintingStatScaleMultiplier=1
+BabyCuddleGracePeriodMultiplier=1
+BabyCuddleLoseImprintQualitySpeedMultiplier=1
+bDisableDinoBreeding=False
+PoopIntervalMultiplier=1
+GlobalSpoilingTimeMultiplier=1
+GlobalItemDecompositionTimeMultiplier=1
+GlobalCorpseDecompositionTimeMultiplier=1
+CorpseLifeSpanMultiplier=1
+ClampItemSpoilingTimes=False
+CropGrowthSpeedMultiplier=1
+CropDecaySpeedMultiplier=1
+FuelConsumptionIntervalMultiplier=1
+ResourceNoReplenishRadiusPlayers=1
+ResourceNoReplenishRadiusStructures=1
+FishingLootQualityMultiplier=1
+PerLevelStatsMultiplier_DinoTamed[0]=0.2
+PerLevelStatsMultiplier_DinoTamed[1]=1
+PerLevelStatsMultiplier_DinoTamed[2]=1
+PerLevelStatsMultiplier_DinoTamed[3]=1
+PerLevelStatsMultiplier_DinoTamed[4]=1
+PerLevelStatsMultiplier_DinoTamed[5]=1
+PerLevelStatsMultiplier_DinoTamed[6]=1
+PerLevelStatsMultiplier_DinoTamed[7]=1
+PerLevelStatsMultiplier_DinoTamed[8]=0.17
+PerLevelStatsMultiplier_DinoTamed[9]=1
+PerLevelStatsMultiplier_DinoTamed[10]=1
+PerLevelStatsMultiplier_DinoTamed_Add[0]=0.14
+PerLevelStatsMultiplier_DinoTamed_Add[1]=1
+PerLevelStatsMultiplier_DinoTamed_Add[2]=1
+PerLevelStatsMultiplier_DinoTamed_Add[3]=1
+PerLevelStatsMultiplier_DinoTamed_Add[4]=1
+PerLevelStatsMultiplier_DinoTamed_Add[5]=1
+PerLevelStatsMultiplier_DinoTamed_Add[6]=1
+PerLevelStatsMultiplier_DinoTamed_Add[7]=1
+PerLevelStatsMultiplier_DinoTamed_Add[8]=0.14
+PerLevelStatsMultiplier_DinoTamed_Add[9]=1
+PerLevelStatsMultiplier_DinoTamed_Add[10]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[0]=0.44
+PerLevelStatsMultiplier_DinoTamed_Affinity[1]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[2]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[3]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[4]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[5]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[6]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[7]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[8]=0.44
+PerLevelStatsMultiplier_DinoTamed_Affinity[9]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[10]=1
+PerLevelStatsMultiplier_DinoWild[0]=1
+PerLevelStatsMultiplier_DinoWild[1]=1
+PerLevelStatsMultiplier_DinoWild[2]=1
+PerLevelStatsMultiplier_DinoWild[3]=1
+PerLevelStatsMultiplier_DinoWild[4]=1
+PerLevelStatsMultiplier_DinoWild[5]=1
+PerLevelStatsMultiplier_DinoWild[6]=1
+PerLevelStatsMultiplier_DinoWild[7]=1
+PerLevelStatsMultiplier_DinoWild[8]=1
+PerLevelStatsMultiplier_DinoWild[9]=1
+PerLevelStatsMultiplier_DinoWild[10]=1
+PerLevelStatsMultiplier_Player[0]=1
+PerLevelStatsMultiplier_Player[1]=1
+PerLevelStatsMultiplier_Player[2]=1
+PerLevelStatsMultiplier_Player[3]=1
+PerLevelStatsMultiplier_Player[4]=1
+PerLevelStatsMultiplier_Player[5]=1
+PerLevelStatsMultiplier_Player[6]=1
+PerLevelStatsMultiplier_Player[7]=1
+PerLevelStatsMultiplier_Player[8]=1
+PerLevelStatsMultiplier_Player[9]=1
+PerLevelStatsMultiplier_Player[10]=1
+PlayerDamageMultiplier=1
+DinoDamageMultiplier=1
+TamedDinoDamageMultiplier=1
+WildDinoDamageMultiplier=1
+StructureDamageMultiplier=1
+DinoTurretDamageMultiplier=1
+PlayerResistanceMultiplier=1
+DinoResistanceMultiplier=1
+TamedDinoResistanceMultiplier=1
+WildDinoResistanceMultiplier=1
+StructureResistanceMultiplier=1
+PvPZoneStructureDamageMultiplier=1
+StructureDamageRepairCooldown=180
+IncreasePvPRespawnIntervalCheckPeriod=300
+IncreasePvPRespawnIntervalMultiplier=1
+IncreasePvPRespawnIntervalBaseAmount=60
+bIncreasePvPRespawnInterval=True
+bPvEAllowTribeWar=True
+bPvEAllowTribeWarCancel=False
+bPvEDisableFriendlyFire=False
+MaxDifficulty=False
+bUseSingleplayerSettings=False
+bHardLimitTurretsInRange=True
+bDisableStructurePlacementCollision=False
+bUseCorpseLocator=False
+bAllowPlatformSaddleMultiFloors=False
+bDisableLootCrates=False
+bAllowCustomRecipes=True
+bDisableFriendlyFire=False
+bDisableDinoRiding=False
+bDisableDinoTaming=False
+bDisableDefaultDinoTaming=False
+bDisablePhotoMode=False
+bDisableGPS=False
+bDisableDinoAI=False
+bDisableTorporEffect=False
+bServerDisableMeleeSwingingThroughPlayers=False
+bFlyerPlatformAllowUnalignedDinoBasing=False
+bPassiveDefensesDamageRiderlessDinos=False
+bAllowUnlimitedRespecs=False
+bAutoPvETimer=False
+bAutoPvEUseSystemTime=False
+AutoPvEStartTimeSeconds=0
+AutoPvEStopTimeSeconds=0
+PhotoModeRangeLimit=3000
+OverrideMaxExperiencePointsPlayer=0
+OverrideMaxExperiencePointsDino=0
+MaxNumberOfPlayersInTribe=0
+MaxPlatformSaddleStructureLimit=0
+DayCycleSpeedScale=1
+HexagonRewardMultiplier=1
+bAllowMultipleC4PerDino=False
+MaximumBumpIncrements=0
+
+[/Script/ShooterGame.ShooterPlayerController_Menu]
+DiscordAccessToken=
+DiscordRefreshToken=
+`;
+
+    const highRateGame =
+`;METADATA=(Diff=true, UseCommands=true)
+[/Script/ShooterGame.ShooterGameMode]
+HarvestXPMultiplier=1
+CraftXPMultiplier=1
+KillXPMultiplier=1
+GenericXPMultiplier=1
+SpecialXPMultiplier=1
+ExplorerNoteXPMultiplier=1
+BossKillXPMultiplier=1
+AlphaKillXPMultiplier=1
+WildKillXPMultiplier=1
+CaveKillXPMultiplier=1
+TamedKillXPMultiplier=1
+UnclaimedKillXPMultiplier=1
+DinoHarvestingDamageMultiplier=3.2
+PlayerHarvestingDamageMultiplier=3.2
+CustomRecipeEffectivenessMultiplier=1
+CustomRecipeSkillMultiplier=1
+BabyMatureSpeedMultiplier=10
+EggHatchSpeedMultiplier=10
+MatingIntervalMultiplier=0.01
+LayEggIntervalMultiplier=0.5
+BabyCuddleIntervalMultiplier=0.1
+BabyFoodConsumptionSpeedMultiplier=1
+BabyImprintingStatScaleMultiplier=1
+BabyCuddleGracePeriodMultiplier=1
+BabyCuddleLoseImprintQualitySpeedMultiplier=1
+bDisableDinoBreeding=False
+PoopIntervalMultiplier=1
+GlobalSpoilingTimeMultiplier=1
+GlobalItemDecompositionTimeMultiplier=1
+GlobalCorpseDecompositionTimeMultiplier=6
+CorpseLifeSpanMultiplier=1
+ClampItemSpoilingTimes=False
+CropGrowthSpeedMultiplier=1
+CropDecaySpeedMultiplier=1
+FuelConsumptionIntervalMultiplier=1
+ResourceNoReplenishRadiusPlayers=0.2
+ResourceNoReplenishRadiusStructures=0.5
+FishingLootQualityMultiplier=1
+PerLevelStatsMultiplier_DinoTamed[0]=0.2
+PerLevelStatsMultiplier_DinoTamed[1]=1
+PerLevelStatsMultiplier_DinoTamed[2]=1
+PerLevelStatsMultiplier_DinoTamed[3]=1
+PerLevelStatsMultiplier_DinoTamed[4]=1
+PerLevelStatsMultiplier_DinoTamed[5]=1
+PerLevelStatsMultiplier_DinoTamed[6]=1
+PerLevelStatsMultiplier_DinoTamed[7]=3
+PerLevelStatsMultiplier_DinoTamed[8]=0.17
+PerLevelStatsMultiplier_DinoTamed[9]=1
+PerLevelStatsMultiplier_DinoTamed[10]=1
+PerLevelStatsMultiplier_DinoTamed_Add[0]=0.14
+PerLevelStatsMultiplier_DinoTamed_Add[1]=1
+PerLevelStatsMultiplier_DinoTamed_Add[2]=1
+PerLevelStatsMultiplier_DinoTamed_Add[3]=1
+PerLevelStatsMultiplier_DinoTamed_Add[4]=1
+PerLevelStatsMultiplier_DinoTamed_Add[5]=1
+PerLevelStatsMultiplier_DinoTamed_Add[6]=1
+PerLevelStatsMultiplier_DinoTamed_Add[7]=3
+PerLevelStatsMultiplier_DinoTamed_Add[8]=0.14
+PerLevelStatsMultiplier_DinoTamed_Add[9]=1
+PerLevelStatsMultiplier_DinoTamed_Add[10]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[0]=0.44
+PerLevelStatsMultiplier_DinoTamed_Affinity[1]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[2]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[3]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[4]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[5]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[6]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[7]=3
+PerLevelStatsMultiplier_DinoTamed_Affinity[8]=0.44
+PerLevelStatsMultiplier_DinoTamed_Affinity[9]=1
+PerLevelStatsMultiplier_DinoTamed_Affinity[10]=1
+PerLevelStatsMultiplier_DinoWild[0]=1
+PerLevelStatsMultiplier_DinoWild[1]=1
+PerLevelStatsMultiplier_DinoWild[2]=1
+PerLevelStatsMultiplier_DinoWild[3]=1
+PerLevelStatsMultiplier_DinoWild[4]=1
+PerLevelStatsMultiplier_DinoWild[5]=1
+PerLevelStatsMultiplier_DinoWild[6]=1
+PerLevelStatsMultiplier_DinoWild[7]=1
+PerLevelStatsMultiplier_DinoWild[8]=1
+PerLevelStatsMultiplier_DinoWild[9]=1
+PerLevelStatsMultiplier_DinoWild[10]=1
+PerLevelStatsMultiplier_Player[0]=1
+PerLevelStatsMultiplier_Player[1]=1
+PerLevelStatsMultiplier_Player[2]=1
+PerLevelStatsMultiplier_Player[3]=1
+PerLevelStatsMultiplier_Player[4]=1
+PerLevelStatsMultiplier_Player[5]=1
+PerLevelStatsMultiplier_Player[6]=1
+PerLevelStatsMultiplier_Player[7]=3
+PerLevelStatsMultiplier_Player[8]=1
+PerLevelStatsMultiplier_Player[9]=1
+PerLevelStatsMultiplier_Player[10]=1
+PlayerDamageMultiplier=1
+DinoDamageMultiplier=1
+TamedDinoDamageMultiplier=1
+WildDinoDamageMultiplier=1
+StructureDamageMultiplier=1
+DinoTurretDamageMultiplier=1
+PlayerResistanceMultiplier=1
+DinoResistanceMultiplier=1
+TamedDinoResistanceMultiplier=1
+WildDinoResistanceMultiplier=1
+StructureResistanceMultiplier=1
+PvPZoneStructureDamageMultiplier=1
+StructureDamageRepairCooldown=180
+IncreasePvPRespawnIntervalCheckPeriod=300
+IncreasePvPRespawnIntervalMultiplier=1
+IncreasePvPRespawnIntervalBaseAmount=60
+bIncreasePvPRespawnInterval=True
+bPvEAllowTribeWar=True
+bPvEAllowTribeWarCancel=False
+bPvEDisableFriendlyFire=False
+MaxDifficulty=True
+bUseSingleplayerSettings=False
+bHardLimitTurretsInRange=True
+bDisableStructurePlacementCollision=True
+bUseCorpseLocator=True
+bAllowPlatformSaddleMultiFloors=False
+bDisableLootCrates=False
+bAllowCustomRecipes=True
+bDisableFriendlyFire=False
+bDisableDinoRiding=False
+bDisableDinoTaming=False
+bDisableDefaultDinoTaming=False
+bDisablePhotoMode=False
+bDisableGPS=False
+bDisableDinoAI=False
+bDisableTorporEffect=False
+bServerDisableMeleeSwingingThroughPlayers=False
+bFlyerPlatformAllowUnalignedDinoBasing=False
+bPassiveDefensesDamageRiderlessDinos=False
+bAllowUnlimitedRespecs=True
+bAutoPvETimer=False
+bAutoPvEUseSystemTime=False
+AutoPvEStartTimeSeconds=0
+AutoPvEStopTimeSeconds=0
+PhotoModeRangeLimit=3000
+OverrideMaxExperiencePointsPlayer=0
+OverrideMaxExperiencePointsDino=0
+MaxNumberOfPlayersInTribe=0
+MaxPlatformSaddleStructureLimit=0
+DayCycleSpeedScale=1
+HexagonRewardMultiplier=1
+bAllowMultipleC4PerDino=False
+MaximumBumpIncrements=0
+
+[/Script/ShooterGame.ShooterPlayerController_Menu]
+DiscordAccessToken=
+DiscordRefreshToken=
+
+[ShooterGameMode_TEMPOverrides]
+bUseCorpseLocator=True
+`;
+
+    const officialGUS =
+`;METADATA=(Diff=true, UseCommands=true)
+[ServerSettings]
+DifficultyOffset=0.2
+DayTimeSpeedScale=1
+NightTimeSpeedScale=1
+XPMultiplier=1
+TamingSpeedMultiplier=1
+HarvestAmountMultiplier=1
+DinoCountMultiplier=1
+HarvestHealthMultiplier=1
+StartTimeOverride=False
+StartTimeHour=-1
+OxygenSwimSpeedStatMultiplier=1
+StructurePreventResourceRadiusMultiplier=1
+PvEDinoDecayPeriodMultiplier=1
+DisableStructureDecayPvE=False
+PerPlatformMaxStructuresMultiplier=1
+TheMaxStructuresInRange=10500
+PlatformSaddleBuildAreaBoundsMultiplier=1
+AlwaysAllowStructurePickup=False
+StructurePickupTimeAfterPlacement=30
+StructurePickupHoldDuration=0.5
+OverrideStructurePlatformPrevention=False
+AllowCaveBuildingPvE=False
+ServerPVE=False
+ServerHardcore=False
+AllowFlyerCarryPvE=False
+AllowRaidDinoFeeding=False
+DisablePvEGamma=False
+DisableDinoDecayPvE=False
+AllowThirdPersonPlayer=False
+ServerCrosshair=False
+ServerForceNoHUD=False
+ShowMapPlayerLocation=False
+EnablePvPGamma=True
+ShowFloatingDamageText=False
+AllowHitMarkers=False
+OnlyAllowSpecifiedEngrams=False
+GlobalVoiceChat=False
+ProximityChat=False
+NoTributeDownloads=False
+PreventDownloadSurvivors=False
+PreventDownloadItems=False
+PreventDownloadDinos=False
+AlwaysNotifyPlayerLeft=False
+DontAlwaysNotifyPlayerJoined=False
+AdminLogging=True
+AllowHideDamageSourceFromLogs=True
+PreventTribeAlliances=False
+TribeNameChangeCooldown=15
+LimitBunkersPerTribe=True
+LimitBunkersPerTribeNum=3
+AllowRidingDinosInsideBunkers=True
+AllowDinoAIInsideBunkers=True
+MinDistanceBetweenBunkers=3000
+EnemyAccessBunkerHPThreshold=0.25
+BunkerUnderHPThresholdDmgMultiplier=0.05
+MaxTamedDinos=5000
+MaxTamedDinos_SoftTameLimit=5000
+MaxTamedDinos_SoftTameLimit_CountdownForDeletionDuration=604800
+KickIdlePlayersPeriod=3600
+AutoSavePeriodMinutes=15
+NeedsPowerToActivateAquaticCompartments=True
+ForceGachaUnhappyInCaves=True
+AllowAnyoneBabyImprintCuddle=False
+DisableImprintDinoBuff=False
+ForceResetWildDinos=False
+PreventDiseases=False
+NonPermanentDiseases=False
+EnableExtraStructurePreventionVolumes=False
+bAllowSpeedLeveling=False
+bAllowFlyerSpeedLeveling=False
+PreventOfflinePvPInterval=0
+RandomSupplyCratePoints=False
+SupplyCrateLootQualityMultiplier=1
+ActiveEvent=None
+OverrideStartTime=False
+OverrideSecondsUntilBuriedTreasureAutoReveals=1209600
+RCONPort=27020
+RCONServerGameLogBuffer=600
+ItemStackSizeMultiplier=1
+CraftingSkillBonusMultiplier=1
+BloodforgeReinforceExtraDurability=0.3
+BloodforgeReinforceResourceCostMultiplier=3
+BloodforgeReinforceSpeedMultiplier=0.1
+CryoHospitalHoursToRegenHP=1
+CryoHospitalHoursToRegenFood=24
+CryoHospitalHoursToDrainTorpor=1
+CryoHospitalMatingCooldownReduction=2
+ImplantSuicideCD=28800
+OutpostSigilRewardMultiplier=1
+DisableWeatherFog=False
+ListenServerTetherDistanceMultiplier=1
+DisableCryopodFridgeRequirement=False
+ServerPassword=
+ServerAdminPassword=
+RaidDinoCharacterFoodDrainMultiplier=1
+RCONEnabled=False
+RCONPassword=
+ServerMotd=
+BanListURL=
+EnablePlayerListing=True
+bIgnoreServerFull=False
+SpectatorPassword=
+ServerAutoForceRespawnWildDinosInterval=0
+UseServerNetSpeedCheck=True
+DisableEncryption=False
+bPvEAllowStructuresAtSupplyDrops=False
+PvEStructureDecayPeriodMultiplier=1
+PvEStructureDecayDestructionPeriod=0
+NPCNetworkStasisRangeScalePercent=1.0
+TetheringDistanceMultiplier=1.0
+bDisableWorldBosses=False
+ShowCreativeMode=False
+CrossARKAllowForeignDinoDownloads=True
+MaxTributeDinos=0
+MaxTributeItems=0
+TributeDinoExpirationSeconds=86400
+TributeItemExpirationSeconds=86400
+bDisableCharacterDownload=False
+bDisableDinoDownload=False
+bDisableItemDownload=False
+bDisableInventoryOnCharacterDownload=False
+bDisablePvPDinoDecay=False
+PvPDinoDecayPeriodMultiplier=1
+PvPStructureDecayPeriodMultiplier=1
+`;
+
+    const highRateGUS =
+`;METADATA=(Diff=true, UseCommands=true)
+[ServerSettings]
+DifficultyOffset=1
+DayTimeSpeedScale=0.5
+NightTimeSpeedScale=2
+XPMultiplier=3
+TamingSpeedMultiplier=5
+HarvestAmountMultiplier=3
+DinoCountMultiplier=2
+HarvestHealthMultiplier=1.2
+StartTimeOverride=False
+StartTimeHour=10
+OxygenSwimSpeedStatMultiplier=1
+StructurePreventResourceRadiusMultiplier=0.6
+PvEDinoDecayPeriodMultiplier=1
+DisableStructureDecayPvE=True
+PerPlatformMaxStructuresMultiplier=5
+TheMaxStructuresInRange=10500
+PlatformSaddleBuildAreaBoundsMultiplier=1
+AlwaysAllowStructurePickup=True
+StructurePickupTimeAfterPlacement=30
+StructurePickupHoldDuration=0.5
+OverrideStructurePlatformPrevention=True
+AllowCaveBuildingPvE=True
+ServerPVE=True
+ServerHardcore=False
+AllowFlyerCarryPvE=True
+AllowRaidDinoFeeding=True
+DisablePvEGamma=False
+DisableDinoDecayPvE=True
+AllowThirdPersonPlayer=True
+ServerCrosshair=True
+ServerForceNoHUD=False
+ShowMapPlayerLocation=True
+EnablePvPGamma=True
+ShowFloatingDamageText=True
+AllowHitMarkers=True
+OnlyAllowSpecifiedEngrams=False
+GlobalVoiceChat=True
+ProximityChat=True
+NoTributeDownloads=False
+PreventDownloadSurvivors=False
+PreventDownloadItems=False
+PreventDownloadDinos=False
+AlwaysNotifyPlayerLeft=False
+DontAlwaysNotifyPlayerJoined=False
+AdminLogging=True
+AllowHideDamageSourceFromLogs=True
+PreventTribeAlliances=False
+TribeNameChangeCooldown=15
+LimitBunkersPerTribe=True
+LimitBunkersPerTribeNum=3
+AllowRidingDinosInsideBunkers=True
+AllowDinoAIInsideBunkers=True
+MinDistanceBetweenBunkers=3000
+EnemyAccessBunkerHPThreshold=0.25
+BunkerUnderHPThresholdDmgMultiplier=0.05
+MaxTamedDinos=5000
+MaxTamedDinos_SoftTameLimit=5000
+MaxTamedDinos_SoftTameLimit_CountdownForDeletionDuration=604800
+KickIdlePlayersPeriod=3600
+AutoSavePeriodMinutes=15
+NeedsPowerToActivateAquaticCompartments=True
+ForceGachaUnhappyInCaves=True
+AllowAnyoneBabyImprintCuddle=False
+DisableImprintDinoBuff=False
+ForceResetWildDinos=False
+PreventDiseases=False
+NonPermanentDiseases=False
+EnableExtraStructurePreventionVolumes=False
+bAllowSpeedLeveling=True
+bAllowFlyerSpeedLeveling=False
+PreventOfflinePvPInterval=0
+RandomSupplyCratePoints=False
+SupplyCrateLootQualityMultiplier=1
+ActiveEvent=None
+OverrideStartTime=False
+OverrideSecondsUntilBuriedTreasureAutoReveals=1209600
+RCONPort=27020
+RCONServerGameLogBuffer=600
+ItemStackSizeMultiplier=1
+CraftingSkillBonusMultiplier=1
+BloodforgeReinforceExtraDurability=0.3
+BloodforgeReinforceResourceCostMultiplier=3
+BloodforgeReinforceSpeedMultiplier=0.1
+CryoHospitalHoursToRegenHP=1
+CryoHospitalHoursToRegenFood=24
+CryoHospitalHoursToDrainTorpor=1
+CryoHospitalMatingCooldownReduction=2
+ImplantSuicideCD=28800
+OutpostSigilRewardMultiplier=1
+DisableWeatherFog=False
+ListenServerTetherDistanceMultiplier=1
+DisableCryopodFridgeRequirement=True
+ServerPassword=
+ServerAdminPassword=
+RaidDinoCharacterFoodDrainMultiplier=1
+RCONEnabled=False
+RCONPassword=
+ServerMotd=
+BanListURL=
+EnablePlayerListing=True
+bIgnoreServerFull=False
+SpectatorPassword=
+ServerAutoForceRespawnWildDinosInterval=0
+UseServerNetSpeedCheck=True
+DisableEncryption=False
+bPvEAllowStructuresAtSupplyDrops=False
+PvEStructureDecayPeriodMultiplier=1
+PvEStructureDecayDestructionPeriod=0
+NPCNetworkStasisRangeScalePercent=1.0
+TetheringDistanceMultiplier=1.0
+bDisableWorldBosses=False
+ShowCreativeMode=False
+CrossARKAllowForeignDinoDownloads=True
+MaxTributeDinos=0
+MaxTributeItems=0
+TributeDinoExpirationSeconds=86400
+TributeItemExpirationSeconds=86400
+bDisableCharacterDownload=False
+bDisableDinoDownload=False
+bDisableItemDownload=False
+bDisableInventoryOnCharacterDownload=False
+bDisablePvPDinoDecay=False
+PvPDinoDecayPeriodMultiplier=1
+PvPStructureDecayPeriodMultiplier=1
+`;
+
+    // --- Edit Operations ---
+    function startEdit(param) {
+      editing.value = param;
+      editValue.value = param.value;
+      editError.value = '';
+      nextTick(() => {
+        if (editInput.value) editInput.value.focus();
+      });
+    }
+
+    function closeEdit() {
+      editing.value = null;
+      editValue.value = '';
+      editError.value = '';
+    }
+
+    function saveEdit() {
+      if (!editing.value) return;
+
+      // Validate
+      const meta = editing.value.meta;
+      const val = editValue.value.trim();
+      editError.value = '';
+
+      if (meta?.t === 'boolean') {
+        const v = val.toLowerCase();
+        if (v !== 'true' && v !== 'false') {
+          editError.value = '布尔值必须为 True 或 False';
+          return;
+        }
+      } else if (meta?.t === 'number') {
+        if (isNaN(Number(val)) || val === '') {
+          editError.value = '必须为数字';
+          return;
+        }
+        if (meta.min !== undefined && Number(val) < meta.min) {
+          editError.value = `最小值为 ${meta.min}`;
+          return;
+        }
+        if (meta.max !== undefined && Number(val) > meta.max) {
+          editError.value = `最大值为 ${meta.max}`;
+          return;
+        }
+      }
+
+      // Apply change
+      editing.value.prop.value = val;
+      editing.value.prop._modified = true;
+      editing.value.prop.inlineComment = meta?.n ? `# ${meta.n}` : editing.value.prop.inlineComment;
+      closeEdit();
+    }
+
+    function resetEdit() {
+      if (!editing.value) return;
+      const defVal = editing.value.meta?.d || '';
+      editValue.value = String(defVal);
+      editError.value = '';
+    }
+
+    function resetParam(param) {
+      if (!param.meta?.d) return;
+      param.prop.value = String(param.meta.d);
+      param.prop._modified = true;
+    }
+
+    function copyParam(param) {
+      navigator.clipboard.writeText(param.key).catch(() => {});
+    }
+
+    // --- Theme ---
+    function toggleTheme() {
+      document.documentElement.classList.toggle('light', !isDark.value);
+    }
+
+    // --- Drag & Drop ---
+    function onDragEnter(e) {
+      e.preventDefault();
+      dragCounter++;
+      isDragging.value = true;
+    }
+    function onDragLeave(e) {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) { dragCounter = 0; isDragging.value = false; }
+    }
+    function onDragOver(e) { e.preventDefault(); }
+    async function onDrop(e) {
+      e.preventDefault();
+      dragCounter = 0;
+      isDragging.value = false;
+      const items = e.dataTransfer.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file.name.endsWith('.ini')) {
+            await loadFile(file, null);
+          }
+        }
+      }
+    }
+
+    // --- Lifecycle ---
+    onMounted(() => {
+      document.addEventListener('dragenter', onDragEnter);
+      document.addEventListener('dragleave', onDragLeave);
+      document.addEventListener('dragover', onDragOver);
+      document.addEventListener('drop', onDrop);
+      document.documentElement.classList.toggle('light', !isDark.value);
+    });
+
+    onBeforeUnmount(() => {
+      document.removeEventListener('dragenter', onDragEnter);
+      document.removeEventListener('dragleave', onDragLeave);
+      document.removeEventListener('dragover', onDragOver);
+      document.removeEventListener('drop', onDrop);
+    });
+
+    // --- Expose ---
+    return {
+      isDragging, isDark, activeTab, showIntro,
+      searchQuery, selectedCategory, showModifiedOnly,
+      sortKey, sortAsc,
+      fileHandle, hasData, isModified, modifiedCount,
+      allParams, categories, catIcons, catFreq, catNote, filteredParams,
+      catCount, catModifiedCount,
+      editing, editValue, editError, editInput,
+      toggleSort, switchTab,
+      openFile, saveFile, downloadFile, template,
+      startEdit, closeEdit, saveEdit, resetEdit, resetParam, copyParam,
+      toggleTheme,
+      modQuery, modResults, modSearched, modPage, modTotal, modPageSize, searchMods, copyModId, formatNum
+    };
+  }
+});
+
+app.mount('#app');
+</script>
+</body>
+</html>
