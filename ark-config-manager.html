@@ -628,7 +628,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <div class="deploy-section" style="min-width:180px;">
           <div class="deploy-section-title">🚀 操作</div>
           <div class="deploy-actions" style="flex-direction:column;">
-            <button class="btn primary" @click="deployToServer" style="width:100%;">🚀 部署到服务器</button>
+            <button class="btn primary" @click="deployToServer" style="width:100%;">🚀 生成启动工具文件</button>
             <button class="btn" @click="saveProfile" style="width:100%;">💾 保存方案</button>
             <button class="btn" @click="loadProfile" style="width:100%;">📂 加载方案</button>
           </div>
@@ -663,8 +663,8 @@ tbody tr:hover td.actions .btn { opacity:1; }
 
   <!-- Status Bar -->
   <div class="status-bar">
-    <span class="dot" :class="{ unsaved: isModified }"></span>
-    <span>{{ isModified ? '有未保存的修改' : '已保存' }}</span>
+    <span class="dot" :class="{ unsaved: hasUnsavedEdits }"></span>
+    <span>{{ hasUnsavedEdits ? '有未保存的修改' : '已保存' }}</span>
     <span v-if="fileHandle">| 文件: {{ fileHandle.name }}</span>
     <span>| 支持 Chrome / Edge（File System Access API）</span>
     <span style="margin-left:auto;">拖拽 .ini 文件到窗口即可加载</span>
@@ -1706,6 +1706,16 @@ const app = createApp({
     const isModified = computed(() => allParams.value.some(p => p.isModified));
     const modifiedCount = computed(() => allParams.value.filter(p => p.isModified).length);
 
+    // 当前 tab 是否有未保存的编辑（基于 _modified 标记，保存后自动清除）
+    const hasUnsavedEdits = computed(() => {
+      for (const sec of currentSections.value) {
+        for (const prop of sec.properties) {
+          if (prop._modified) return true;
+        }
+      }
+      return false;
+    });
+
     // Categories from all params
     const categories = computed(() => {
       const cats = new Set();
@@ -1887,6 +1897,12 @@ const app = createApp({
     }
 
     function switchTab(tab) {
+      // 如果当前 tab 有未保存的修改，提示用户
+      if ((activeTab.value === 'game' || activeTab.value === 'gameusersettings') && hasUnsavedEdits.value && tab !== activeTab.value) {
+        if (!confirm(`当前 ${activeTab.value === 'game' ? 'Game.ini' : 'GameUserSettings.ini'} 有未保存的修改，是否放弃修改并切换？\n\n点击"确定"放弃修改并切换，点击"取消"留在当前页面。`)) {
+          return;
+        }
+      }
       activeTab.value = tab;
       selectedCategory.value = null;
       searchQuery.value = '';
@@ -1952,11 +1968,21 @@ const app = createApp({
       showModifiedOnly.value = false;
     }
 
+    /** 清除 sections 中所有 _modified 标记（保存后调用） */
+    function clearModifiedFlags(sections) {
+      for (const sec of sections) {
+        for (const prop of sec.properties) {
+          delete prop._modified;
+        }
+      }
+    }
+
     async function saveFile() {
       const handle = fileHandles[activeTab.value];
       if (!handle) return;
 
-      const text = writeINI(tabSections[activeTab.value]);
+      const sections = tabSections[activeTab.value];
+      const text = writeINI(sections);
 
       try {
         if (handle.createWritable) {
@@ -1964,6 +1990,7 @@ const app = createApp({
           const writable = await handle.createWritable();
           await writable.write(text);
           await writable.close();
+          clearModifiedFlags(sections);
         } else {
           // Fallback download
           downloadFile();
@@ -1977,7 +2004,8 @@ const app = createApp({
     }
 
     function downloadFile() {
-      const text = writeINI(tabSections[activeTab.value]);
+      const sections = tabSections[activeTab.value];
+      const text = writeINI(sections);
       const name = activeTab.value === 'gameusersettings' ? 'GameUserSettings.ini' : 'Game.ini';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -1986,6 +2014,7 @@ const app = createApp({
       a.download = name;
       a.click();
       URL.revokeObjectURL(url);
+      clearModifiedFlags(sections);
     }
 
     // --- Templates ---
@@ -2628,7 +2657,7 @@ PvPStructureDecayPeriodMultiplier=1
       // Apply change
       editing.value.prop.value = val;
       editing.value.prop._modified = true;
-      editing.value.prop.inlineComment = meta?.n ? `# ${meta.n}` : editing.value.prop.inlineComment;
+      // 不自动添加注释到文件中，仅保留原始文件中已有的行内注释
       closeEdit();
     }
 
@@ -2683,12 +2712,22 @@ PvPStructureDecayPeriodMultiplier=1
       }
     }
 
+    // --- 页面刷新/关闭时提示未保存 ---
+    function onBeforeUnload(e) {
+      if (hasUnsavedEdits.value) {
+        e.preventDefault();
+        e.returnValue = '您有未保存的修改，确定要离开吗？';
+        return e.returnValue;
+      }
+    }
+
     // --- Lifecycle ---
     onMounted(() => {
       document.addEventListener('dragenter', onDragEnter);
       document.addEventListener('dragleave', onDragLeave);
       document.addEventListener('dragover', onDragOver);
       document.addEventListener('drop', onDrop);
+      window.addEventListener('beforeunload', onBeforeUnload);
       document.documentElement.classList.toggle('light', !isDark.value);
     });
 
@@ -2697,6 +2736,7 @@ PvPStructureDecayPeriodMultiplier=1
       document.removeEventListener('dragleave', onDragLeave);
       document.removeEventListener('dragover', onDragOver);
       document.removeEventListener('drop', onDrop);
+      window.removeEventListener('beforeunload', onBeforeUnload);
     });
 
     // --- Expose ---
@@ -2704,7 +2744,7 @@ PvPStructureDecayPeriodMultiplier=1
       isDragging, isDark, activeTab, showIntro,
       searchQuery, selectedCategory, showModifiedOnly,
       sortKey, sortAsc,
-      fileHandle, hasData, isModified, modifiedCount,
+      fileHandle, hasData, isModified, modifiedCount, hasUnsavedEdits,
       allParams, categories, catIcons, catFreq, catNote, filteredParams,
       catCount, catModifiedCount,
       editing, editValue, editError, editInput,
