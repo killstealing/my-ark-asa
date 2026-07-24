@@ -544,12 +544,6 @@ tbody tr:hover td.actions .btn { opacity:1; }
             <input class="edit-input" v-model="serverPath" :placeholder="'C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\ARK Survival Ascended Dedicated Server'" style="width:100%;">
           </div>
           <div class="deploy-field">
-            <label class="deploy-label">地图</label>
-            <select class="edit-input" v-model="selectedMap" style="width:100%;">
-              <option v-for="m in ASA_MAPS" :key="m.id" :value="m.id">{{ m.name }}</option>
-            </select>
-          </div>
-          <div class="deploy-field">
             <label class="deploy-label">服务器名称</label>
             <input class="edit-input" v-model="sessionName" placeholder="ARK ASA Server" style="width:100%;">
           </div>
@@ -1374,7 +1368,7 @@ const app = createApp({
       { id: 'Svartalfheim_WP', name: 'Svartalfheim (矮人国度)' },
       { id: 'Forglar_WP', name: 'Forglar' },
     ];
-    const serverPath = ref('');
+    const serverPath = ref('D:\\Program Files (x86)\\Steam\\steamapps\\common\\ARK Survival Ascended Dedicated Server');
     const selectedMap = ref('TheIsland_WP');
     const sessionName = ref('ARK ASA Server');
     const maxPlayers = ref(20);
@@ -1386,8 +1380,8 @@ const app = createApp({
     const useBattleEye = ref(true);
     const enableRCON = ref(false);
     const useCrossplay = ref(true);
-    const clusterId = ref('');
-    const clusterDir = ref('');
+    const clusterId = ref('67896');
+    const clusterDir = ref('C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\serverClusters');
     const deployModSearch = ref('');
     const selectedMods = ref([]);
     const deployModPage = ref(0);
@@ -1426,86 +1420,43 @@ const app = createApp({
 
     function generateBatContent() {
       const exeDir = serverPath.value.replace(/\\+$/, '') + '\\ShooterGame\\Binaries\\Win64';
-      let cmdLine;
-
-      // 优先使用 start.txt 模板
       const template = startTxtContent.value;
+
       if (template) {
-        // 找到当前地图对应的 start 命令行
-        const mapId = selectedMap.value.replace('_WP', '');
-        const lines = template.split(/\r?\n/);
-        let tplLine = '';
-        for (const line of lines) {
-          if (line.trim().startsWith('start ') && line.includes(selectedMap.value)) {
-            tplLine = line.trim(); break;
-          }
-        }
-        if (!tplLine) {
-          // 回退到硬编码格式
-          return fallbackBat(exeDir);
-        }
+        // 基于 start.txt，替换全部地图的 start 命令行中的可变参数
+        let result = template;
 
-        // 从模板行提取默认值，再用用户输入替换
-        cmdLine = tplLine
-          .replace(/SessionName=[^?]+/, 'SessionName=' + sessionName.value)
-          .replace(/QueryPort=\d+/, 'QueryPort=' + queryPort.value)
-          .replace(/-port=\d+/, '-port=' + gamePort.value)
-          .replace(/-WinLiveMaxPlayers=\d+/, '-WinLiveMaxPlayers=' + maxPlayers.value);
-
-        // Mods
+        // 全局替换：所有 start 行中的可变值
         if (selectedMods.value.length > 0) {
-          cmdLine = cmdLine.replace(/-mods=[\d,]+/, '-mods=' + selectedModIds.value.join(','));
+          result = result.replace(/-mods=[\d,]+/g, '-mods=' + selectedModIds.value.join(','));
         }
-
-        // BattleEye
+        result = result.replace(/-WinLiveMaxPlayers=\d+/g, '-WinLiveMaxPlayers=' + maxPlayers.value);
         if (useBattleEye.value) {
-          cmdLine = cmdLine.replace(/\s*-NoBattlEye\s*/, ' ');
-        } else if (!/-NoBattlEye/.test(cmdLine)) {
-          cmdLine += ' -NoBattlEye';
+          result = result.replace(/\s*-NoBattlEye\s*/g, ' ');
         }
-
-        // Cluster
         if (clusterId.value) {
-          cmdLine = cmdLine.replace(/-clusterid=\S+/, '-clusterid=' + clusterId.value);
+          result = result.replace(/-clusterid=\S+/g, '-clusterid=' + clusterId.value);
         }
         if (clusterDir.value) {
-          if (/-ClusterDirOverride=/.test(cmdLine)) {
-            cmdLine = cmdLine.replace(/-ClusterDirOverride="[^"]*"/, '-ClusterDirOverride="' + clusterDir.value + '"');
-          } else {
-            cmdLine += ' -ClusterDirOverride="' + clusterDir.value + '"';
-          }
+          result = result.replace(/-ClusterDirOverride="[^"]*"/g, '-ClusterDirOverride="' + clusterDir.value + '"');
         }
 
+        // 更新 cd 路径
+        result = result.replace(/cd \/d ".+?"/i, 'cd /d "' + exeDir + '"');
+
         // 清理多余空格
-        cmdLine = cmdLine.replace(/\s+/g, ' ').trim();
-      } else {
-        return fallbackBat(exeDir);
+        result = result.replace(/[ \t]+$/gm, '');
+        return result;
       }
 
-      return ['@echo off', 'title ARK ASA - ' + sessionName.value,
-        'echo Starting ARK ASA Server: ' + sessionName.value,
-        'echo Map: ' + selectedMap.value + '  |  Port: ' + gamePort.value + '  |  Mods: ' + selectedMods.value.length,
-        '', 'cd /d "' + exeDir + '"', '', cmdLine,
-        '', 'echo.', 'echo Server started! Close this window to stop.', 'pause'].join('\r\n');
+      // 无模板时回退
+      return ['@echo off', 'title ARK ASA Server',
+        'echo No start.txt template found. Please configure manually.',
+        '', 'cd /d "' + exeDir + '"', '',
+        'rem Add your start commands here', '', 'pause'].join('\r\n');
     }
 
-    function fallbackBat(exeDir) {
-      const mapUrl = selectedMap.value + '?listen' +
-        '?SessionName=' + sessionName.value +
-        '?QueryPort=' + queryPort.value +
-        (enableRCON.value ? '?RCONEnabled=True?RCONPort=' + rconPort.value : '');
-      const flags = ['-port=' + gamePort.value, '-WinLiveMaxPlayers=' + maxPlayers.value];
-      if (selectedMods.value.length > 0) flags.push('-mods=' + selectedModIds.value.join(','));
-      if (!useBattleEye.value) flags.push('-NoBattlEye');
-      if (clusterId.value) flags.push('-clusterid=' + clusterId.value);
-      if (clusterDir.value) flags.push('-ClusterDirOverride="' + clusterDir.value + '"');
-      const cmdLine = 'start "' + sessionName.value + '" ArkAscendedServer.exe ' + mapUrl + ' ' + flags.join(' ');
-      return ['@echo off', 'title ARK ASA - ' + sessionName.value,
-        'echo Starting ARK ASA Server: ' + sessionName.value,
-        'echo Map: ' + selectedMap.value + '  |  Port: ' + gamePort.value + '  |  Mods: ' + selectedMods.value.length,
-        '', 'cd /d "' + exeDir + '"', '', cmdLine,
-        '', 'echo.', 'echo Server started! Close this window to stop.', 'pause'].join('\r\n');
-    }
+    function fallbackBat(exeDir) { return generateBatContent(); }
     async function deployToServer() {
       deployMsg.value = ''; deployMsgType.value = '';
       if (!serverPath.value.trim()) { deployMsg.value = '请先输入服务器路径'; deployMsgType.value = 'error'; return; }
