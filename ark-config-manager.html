@@ -505,7 +505,9 @@ tbody tr:hover td.actions .btn { opacity:1; }
           <option v-if="activeTab==='gameusersettings'" value="high-gus">高倍率 GameUserSettings.ini</option>
         </select>
         <button class="btn" @click="downloadFile" :disabled="!hasData">📥 下载</button>
+        <button class="btn" @click="backupFile" :disabled="!hasData" title="带时间戳备份当前配置">📦 备份</button>
         <button class="btn" @click="saveFile" :disabled="!fileHandle || !isModified">💾 保存</button>
+        <button class="btn danger" @click="resetAllToDefaults" :disabled="!hasData" style="margin-left:4px;">↺ 恢复默认值</button>
       </div>
 
       <!-- 分类联动说明 -->
@@ -603,13 +605,16 @@ tbody tr:hover td.actions .btn { opacity:1; }
             <input class="edit-input" v-model="sessionName" placeholder="ARK ASA Server" style="width:100%;">
           </div>
           <div class="deploy-field" style="display:flex;flex-direction:column;gap:4px;">
-            <label class="deploy-label">最大玩家数 / 管理员密码 / 服务器密码</label>
-            <div style="display:flex;gap:8px;">
-              <input class="edit-input" v-model.number="maxPlayers" type="number" min="1" max="127" placeholder="70" style="flex:1;" title="最大玩家数">
-              <input class="edit-input" v-model="adminPassword" placeholder="管理员密码" style="flex:1;" title="管理员密码">
-              <input class="edit-input" v-model="serverPassword" placeholder="服务器密码(可选)" style="flex:1;" title="服务器密码">
-            </div>
-            <span style="font-size:10px;color:var(--text3);">密码写入 GameUserSettings.ini，不出现于启动命令</span>
+            <label class="deploy-label">最大玩家数</label>
+            <input class="edit-input" v-model.number="maxPlayers" type="number" min="1" max="127" placeholder="70" style="width:160px;" title="最大玩家数">
+          </div>
+          <div class="deploy-field" style="display:flex;flex-direction:column;gap:4px;">
+            <label class="deploy-label">管理员密码 / 服务器密码</label>
+            <span style="font-size:12px;color:var(--text2);">
+              💡 密码请在
+              <b @click="goToPasswordSettings" style="cursor:pointer;text-decoration:underline;color:var(--primary);">GameUserSettings.ini → 网络与管理</b>
+              分类中设置 ServerAdminPassword 和 ServerPassword
+            </span>
           </div>
         </div>
         <div class="deploy-advanced-toggle" @click="showAdvanced = !showAdvanced">
@@ -686,8 +691,8 @@ tbody tr:hover td.actions .btn { opacity:1; }
         </div>
       </div>
 
-      <!-- 服务控制 -->
-      <div class="deploy-section">
+      <!-- 服务控制（已隐藏） -->
+      <div class="deploy-section" v-if="false">
         <div class="deploy-section-title">
           🟢 服务控制
           <span class="server-status" style="margin-left:12px;">
@@ -1301,12 +1306,14 @@ function injectPasswords(iniText, adminPassword, serverPassword) {
   if (!result.includes('[ServerSettings]')) {
     result = result + '\n[ServerSettings]\n';
   }
-  result = result.replace(/^ServerAdminPassword=.*$/gm, '').replace(/^ServerPassword=.*$/gm, '');
-  const inject = [];
-  if (adminPassword) inject.push('ServerAdminPassword=' + adminPassword);
-  if (serverPassword) inject.push('ServerPassword=' + serverPassword);
-  if (inject.length > 0) {
-    result = result.replace('[ServerSettings]', '[ServerSettings]\n' + inject.join('\n'));
+  // 只在 deploy 面板手动填写了密码时才覆盖（一般情况密码通过表格编辑即可）
+  if (adminPassword) {
+    result = result.replace(/^ServerAdminPassword=.*$/gm, '');
+    result = result.replace('[ServerSettings]', '[ServerSettings]\nServerAdminPassword=' + adminPassword);
+  }
+  if (serverPassword) {
+    result = result.replace(/^ServerPassword=.*$/gm, '');
+    result = result.replace('[ServerSettings]', '[ServerSettings]\nServerPassword=' + serverPassword);
   }
   return result.replace(/\n{3,}/g, '\n\n');
 }
@@ -1986,6 +1993,11 @@ const app = createApp({
       if (tab === 'deploy') { deployMsg.value = ''; deployMsgType.value = ''; if (!startTxtContent.value) loadStartTxt(); }
     }
 
+    function goToPasswordSettings() {
+      switchTab('gameusersettings');
+      selectedCategory.value = '网络与管理';
+    }
+
     // --- File Operations ---
     async function openFile() {
       try {
@@ -2098,23 +2110,27 @@ const app = createApp({
     }
 
     function downloadFile() {
-      if (pendingChanges.value.length === 0) {
-        alert('没有需要保存的修改');
-        return;
-      }
-
-      showSaveConfirm.value = true;
-      saveConfirmCallback.value = () => {
-        const sections = tabSections[activeTab.value];
-        const text = writeINI(sections);
-        triggerDownload(text);
-        clearModifiedFlags(sections);
-        showSaveConfirm.value = false;
-      };
+      const sections = tabSections[activeTab.value];
+      triggerDownload(writeINI(sections));
     }
 
     function triggerDownload(text) {
       const name = activeTab.value === 'gameusersettings' ? 'GameUserSettings.ini' : 'Game.ini';
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function backupFile() {
+      const sections = tabSections[activeTab.value];
+      const text = writeINI(sections);
+      const baseName = activeTab.value === 'gameusersettings' ? 'GameUserSettings' : 'Game';
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const name = `${baseName}_backup_${ts}.ini`;
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -2782,6 +2798,35 @@ PvPStructureDecayPeriodMultiplier=1
       param.prop._modified = true;
     }
 
+    function resetAllToDefaults() {
+      const tabName = activeTab.value === 'gameusersettings' ? 'GameUserSettings.ini' : 'Game.ini';
+      if (!confirm(`确定要将 ${tabName} 中所有参数恢复为官方默认值吗？\n\n此操作将重置所有参数，随后可预览修改并确认保存。`)) {
+        return;
+      }
+
+      const RELEVANT = ['[/Script/ShooterGame.ShooterGameMode]', '[ServerSettings]'];
+      for (const sec of currentSections.value) {
+        const sectionFull = '[' + sec.name + ']';
+        if (!RELEVANT.includes(sectionFull)) continue;
+        for (const prop of sec.properties) {
+          if (prop.type !== 'property') continue;
+          const meta = findMeta(sectionFull, prop.key);
+          if (!meta?.d) continue;
+          // 已是默认值则跳过
+          if (String(prop.value) === String(meta.d)) continue;
+          // 首次修改时保存原始值
+          if (prop._modified === undefined) {
+            prop._originalValue = prop.value;
+          }
+          prop.value = String(meta.d);
+          prop._modified = true;
+        }
+      }
+
+      // 触发保存确认弹窗
+      saveFile();
+    }
+
     function copyParam(param) {
       navigator.clipboard.writeText(param.key).catch(() => {});
     }
@@ -2857,9 +2902,9 @@ PvPStructureDecayPeriodMultiplier=1
       catCount, catModifiedCount,
       editing, editValue, editError, editInput,
       showSaveConfirm, pendingChanges, cancelSave, confirmSave,
-      toggleSort, switchTab,
-      openFile, saveFile, downloadFile, template,
-      startEdit, closeEdit, saveEdit, resetEdit, resetParam, copyParam,
+      toggleSort, switchTab, goToPasswordSettings,
+      openFile, saveFile, downloadFile, backupFile, template,
+      startEdit, closeEdit, saveEdit, resetEdit, resetParam, resetAllToDefaults, copyParam,
       toggleTheme,
       modQuery, modResults, modSearched, modPage, modTotal, modPageSize, searchMods, copyModId, formatNum,
       ALL_MODS, isFullData,
