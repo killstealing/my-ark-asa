@@ -1,0 +1,12 @@
+{
+  "name": "ark-asa-mod-fetcher",
+  "version": "1.0.0",
+  "description": "Fetch all ARK: Survival Ascended mods from CurseForge API",
+  "private": true,
+  "scripts": {
+    "fetch-mods": "node fetch-mods.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

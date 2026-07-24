@@ -1,0 +1,5 @@
+# 断点续传文件
+.mods-checkpoint.json
+
+# Node modules (如果后续用到)
+node_modules/

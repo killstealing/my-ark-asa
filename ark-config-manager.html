@@ -459,6 +459,8 @@ tbody tr:hover td.actions .btn { opacity:1; }
     <div class="mod-panel">
       <div class="mod-search-bar">
         <input class="search-box" v-model="modQuery" @input="searchMods()" placeholder="🔍 搜索 Mod（名称 / 类型 / ID）..." style="max-width:450px;">
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:8px;" v-if="isFullData">📦 {{ formatNum(ALL_MODS.length) }} 个 Mod</span>
+        <span style="font-size:11px;color:var(--accent);white-space:nowrap;margin-left:8px;" v-else>⚠ 未加载 mods-data.js · {{ ALL_MODS.length }} 个内置</span>
       </div>
       <div class="mod-results" v-if="modResults.length > 0">
         <div class="mod-card" v-for="m in modResults" :key="m.id">
@@ -500,6 +502,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="mods-data.js"></script>
 <script>
 const { createApp, ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } = Vue;
 
@@ -1127,17 +1130,21 @@ const app = createApp({
       { id: 928525, name: 'Potions', summary: '药水模组，各种功能性药水', cat: '制作' },
     ];
 
+    // 全量 Mod 列表（mods-data.js 提供，未加载时回退到内置精简列表）
+    const ALL_MODS = window.__ALL_MODS__ && window.__ALL_MODS__.length > 0 ? window.__ALL_MODS__ : MOD_LIST;
+    const isFullData = ALL_MODS.length > MOD_LIST.length;
+
     async function searchMods(page) {
       if (page !== undefined) modPage.value = page;
       else modPage.value = 0;
       modSearched.value = true;
       const q = modQuery.value.trim().toLowerCase();
 
-      let list = MOD_LIST;
+      let list = ALL_MODS;
       if (q) {
-        list = MOD_LIST.filter(m =>
-          m.name.toLowerCase().includes(q) || m.summary.toLowerCase().includes(q) ||
-          String(m.id).includes(q) || m.cat.includes(q)
+        list = ALL_MODS.filter(m =>
+          m.name.toLowerCase().includes(q) || (m.summary || '').toLowerCase().includes(q) ||
+          String(m.id).includes(q) || (m.cat || '').includes(q)
         );
       }
       modTotal.value = list.length;
@@ -1395,7 +1402,7 @@ const app = createApp({
       selectedCategory.value = null;
       searchQuery.value = '';
       showModifiedOnly.value = false;
-      if (tab === 'mods') { modQuery.value = ''; modResults.value = MOD_LIST; modSearched.value = true; }
+      if (tab === 'mods') { modQuery.value = ''; modResults.value = ALL_MODS.slice(0, modPageSize); modSearched.value = true; modTotal.value = ALL_MODS.length; modPage.value = 0; }
     }
 
     // --- File Operations ---
@@ -2215,7 +2222,8 @@ PvPStructureDecayPeriodMultiplier=1
       openFile, saveFile, downloadFile, template,
       startEdit, closeEdit, saveEdit, resetEdit, resetParam, copyParam,
       toggleTheme,
-      modQuery, modResults, modSearched, modPage, modTotal, modPageSize, searchMods, copyModId, formatNum
+      modQuery, modResults, modSearched, modPage, modTotal, modPageSize, searchMods, copyModId, formatNum,
+      ALL_MODS, isFullData
     };
   }
 });
