@@ -1,0 +1,173 @@
+@echo off
+chcp 65001 >nul
+title 方舟服务器管理器
+
+:menu
+cls
+echo ============================================================
+echo              方舟吴彦祖 全地图服务器启动器
+echo ============================================================
+echo   [1] 孤岛      (端口:7777)     [8]  创世纪1    (端口:7784)
+echo   [2] 焦土      (端口:7778)     [9]  水晶岛    (端口:7785)
+echo   [3] 中心岛    (端口:7779)     [10] 创世纪2    (端口:7786)
+echo   [4] 畸变      (端口:7780)     [11] 迷失岛    (端口:7787)
+echo   [5] 灭绝      (端口:7781)     [12] 峡湾      (端口:7788)
+echo   [6] 仙境      (端口:7782)     [13] Astraeos  (端口:7789)
+echo   [7] 瓦尔盖罗  (端口:7783)     [14] 失落之柱  (端口:7790)
+echo   [15] 启动全部地图
+echo   [0] 退出
+echo ============================================================
+echo   提示: 选择一个地图启动后，会自动返回此菜单继续选择
+echo ============================================================
+set /p choice="请输入数字选择: "
+
+if "%choice%"=="1" goto island
+if "%choice%"=="2" goto scorched
+if "%choice%"=="3" goto center
+if "%choice%"=="4" goto aberration
+if "%choice%"=="5" goto extinction
+if "%choice%"=="6" goto ragnarok
+if "%choice%"=="7" goto valguero
+if "%choice%"=="8" goto genesis
+if "%choice%"=="9" goto crystal
+if "%choice%"=="10" goto genesis2
+if "%choice%"=="11" goto lostisland
+if "%choice%"=="12" goto fjordur
+if "%choice%"=="13" goto astraeos
+if "%choice%"=="14" goto lostcolony
+if "%choice%"=="15" goto all
+if "%choice%"=="0" exit
+echo 输入无效，请重新输入。
+timeout /t 2 /nobreak >nul
+goto menu
+
+:island
+echo 正在启动 方舟吴彦祖-孤岛 (端口:7777)...
+start "方舟吴彦祖-孤岛" ArkAscendedServer.exe TheIsland_WP?listen?SessionName=方舟吴彦祖-孤岛?QueryPort=27015 -port=7777 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 孤岛 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:scorched
+echo 正在启动 方舟吴彦祖-焦土 (端口:7778)...
+start "方舟吴彦祖-焦土" ArkAscendedServer.exe ScorchedEarth_WP?listen?SessionName=方舟吴彦祖-焦土?QueryPort=27016 -port=7778 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 焦土 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:center
+echo 正在启动 方舟吴彦祖-中心岛 (端口:7779)...
+start "方舟吴彦祖-中心岛" ArkAscendedServer.exe TheCenter_WP?listen?SessionName=方舟吴彦祖-中心岛?QueryPort=27017 -port=7779 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 中心岛 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:aberration
+echo 正在启动 方舟吴彦祖-畸变 (端口:7780)...
+start "方舟吴彦祖-畸变" ArkAscendedServer.exe Aberration_WP?listen?SessionName=方舟吴彦祖-畸变?QueryPort=27018 -port=7780 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 畸变 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:extinction
+echo 正在启动 方舟吴彦祖-灭绝 (端口:7781)...
+start "方舟吴彦祖-灭绝" ArkAscendedServer.exe Extinction_WP?listen?SessionName=方舟吴彦祖-灭绝?QueryPort=27019 -port=7781 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 灭绝 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:ragnarok
+echo 正在启动 方舟吴彦祖-仙境 (端口:7782)...
+start "方舟吴彦祖-仙境" ArkAscendedServer.exe Ragnarok_WP?listen?SessionName=方舟吴彦祖-仙境?QueryPort=27020 -port=7782 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 仙境 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:valguero
+echo 正在启动 方舟吴彦祖-瓦尔盖罗 (端口:7783)...
+start "方舟吴彦祖-瓦尔盖罗" ArkAscendedServer.exe Valguero_WP?listen?SessionName=方舟吴彦祖-瓦尔盖罗?QueryPort=27021 -port=7783 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 瓦尔盖罗 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:genesis
+echo 正在启动 方舟吴彦祖-创世纪1 (端口:7784)...
+start "方舟吴彦祖-创世纪1" ArkAscendedServer.exe Genesis_WP?listen?SessionName=方舟吴彦祖-创世纪1?QueryPort=27022 -port=7784 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 创世纪1 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:crystal
+echo 正在启动 方舟吴彦祖-水晶岛 (端口:7785)...
+start "方舟吴彦祖-水晶岛" ArkAscendedServer.exe CrystalIsles_WP?listen?SessionName=方舟吴彦祖-水晶岛?QueryPort=27023 -port=7785 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 水晶岛 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:genesis2
+echo 正在启动 方舟吴彦祖-创世纪2 (端口:7786)...
+start "方舟吴彦祖-创世纪2" ArkAscendedServer.exe Genesis2_WP?listen?SessionName=方舟吴彦祖-创世纪2?QueryPort=27024 -port=7786 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 创世纪2 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:lostisland
+echo 正在启动 方舟吴彦祖-迷失岛 (端口:7787)...
+start "方舟吴彦祖-迷失岛" ArkAscendedServer.exe LostIsland_WP?listen?SessionName=方舟吴彦祖-迷失岛?QueryPort=27025 -port=7787 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 迷失岛 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:fjordur
+echo 正在启动 方舟吴彦祖-峡湾 (端口:7788)...
+start "方舟吴彦祖-峡湾" ArkAscendedServer.exe Fjordur_WP?listen?SessionName=方舟吴彦祖-峡湾?QueryPort=27026 -port=7788 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 峡湾 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:astraeos
+echo 正在启动 方舟吴彦祖-Astraeos (端口:7789)...
+start "方舟吴彦祖-Astraeos" ArkAscendedServer.exe Astraeos_WP?listen?SessionName=方舟吴彦祖-Astraeos?QueryPort=27027 -port=7789 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo Astraeos 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:lostcolony
+echo 正在启动 方舟吴彦祖-失落之柱 (端口:7790)...
+start "方舟吴彦祖-失落之柱" ArkAscendedServer.exe LostColony_WP?listen?SessionName=方舟吴彦祖-失落之柱?QueryPort=27028 -port=7790 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 失落之柱 已启动！
+timeout /t 2 /nobreak >nul
+goto menu
+
+:all
+echo 正在启动所有地图 (请确保内存足够)...
+start "方舟吴彦祖-孤岛" ArkAscendedServer.exe TheIsland_WP?listen?SessionName=方舟吴彦祖-孤岛?QueryPort=27015 -port=7777 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-焦土" ArkAscendedServer.exe ScorchedEarth_WP?listen?SessionName=方舟吴彦祖-焦土?QueryPort=27016 -port=7778 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-中心岛" ArkAscendedServer.exe TheCenter_WP?listen?SessionName=方舟吴彦祖-中心岛?QueryPort=27017 -port=7779 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-畸变" ArkAscendedServer.exe Aberration_WP?listen?SessionName=方舟吴彦祖-畸变?QueryPort=27018 -port=7780 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-灭绝" ArkAscendedServer.exe Extinction_WP?listen?SessionName=方舟吴彦祖-灭绝?QueryPort=27019 -port=7781 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-仙境" ArkAscendedServer.exe Ragnarok_WP?listen?SessionName=方舟吴彦祖-仙境?QueryPort=27020 -port=7782 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-瓦尔盖罗" ArkAscendedServer.exe Valguero_WP?listen?SessionName=方舟吴彦祖-瓦尔盖罗?QueryPort=27021 -port=7783 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-创世纪1" ArkAscendedServer.exe Genesis_WP?listen?SessionName=方舟吴彦祖-创世纪1?QueryPort=27022 -port=7784 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-水晶岛" ArkAscendedServer.exe CrystalIsles_WP?listen?SessionName=方舟吴彦祖-水晶岛?QueryPort=27023 -port=7785 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-创世纪2" ArkAscendedServer.exe Genesis2_WP?listen?SessionName=方舟吴彦祖-创世纪2?QueryPort=27024 -port=7786 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-迷失岛" ArkAscendedServer.exe LostIsland_WP?listen?SessionName=方舟吴彦祖-迷失岛?QueryPort=27025 -port=7787 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-峡湾" ArkAscendedServer.exe Fjordur_WP?listen?SessionName=方舟吴彦祖-峡湾?QueryPort=27026 -port=7788 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-Astraeos" ArkAscendedServer.exe Astraeos_WP?listen?SessionName=方舟吴彦祖-Astraeos?QueryPort=27027 -port=7789 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+timeout /t 3 /nobreak >nul
+start "方舟吴彦祖-失落之柱" ArkAscendedServer.exe LostColony_WP?listen?SessionName=方舟吴彦祖-失落之柱?QueryPort=27028 -port=7790 -WinLiveMaxPlayers=70 -NoBattlEye -clusterid=67896 -ClusterDirOverride="C:\Program Files (x86)\Steam\steamapps\common\serverClusters" -mods=929110,947033,950914,935408
+echo 所有地图已启动！
+timeout /t 3 /nobreak >nul
+goto menu

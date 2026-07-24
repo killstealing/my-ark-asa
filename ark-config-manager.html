@@ -304,6 +304,8 @@ tbody tr:hover td.actions .btn { opacity:1; }
 .deploy-label { font-size:11px; color:var(--text3); font-weight:600; }
 .deploy-check { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:4px; cursor:pointer; }
 .deploy-check input { cursor:pointer; accent-color:var(--primary2); }
+.deploy-advanced-toggle { font-size:12px; color:var(--primary); cursor:pointer; font-weight:600; padding:4px 0; user-select:none; }
+.deploy-advanced-toggle:hover { color:var(--accent); }
 .deploy-mod-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
 .deploy-mod-count { font-size:12px; color:var(--text2); white-space:nowrap; }
 .deploy-mod-list { max-height:320px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg); }
@@ -320,6 +322,15 @@ tbody tr:hover td.actions .btn { opacity:1; }
 .deploy-msg { margin-top:10px; padding:8px 14px; border-radius:var(--radius); font-size:13px; }
 .deploy-msg.success { background:var(--success)22; color:var(--success); border:1px solid var(--success); }
 .deploy-msg.error { background:var(--danger)22; color:var(--danger); border:1px solid var(--danger); }
+.server-log { background:#0d1117; color:#c9d1d9; border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; font-family:Consolas,'Courier New',monospace; font-size:12px; height:200px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; line-height:1.5; }
+.server-log .s-time { color:#58a6ff; }
+.server-log .s-error { color:#f85149; }
+.server-log .s-system { color:#d2a8ff; }
+.server-status { display:inline-flex; align-items:center; gap:6px; font-size:13px; }
+.server-status .dot { width:8px; height:8px; border-radius:50%; }
+.server-status .dot.on { background:var(--success); animation:pulse 2s infinite; }
+.server-status .dot.off { background:var(--text3); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 @media (max-width:768px) { .deploy-grid { grid-template-columns:1fr; } }
 
 </style>
@@ -547,20 +558,28 @@ tbody tr:hover td.actions .btn { opacity:1; }
             <input class="edit-input" v-model.number="maxPlayers" type="number" min="1" max="127" style="width:100%;">
           </div>
           <div class="deploy-field">
+            <label class="deploy-label">管理员密码</label>
+            <input class="edit-input" v-model="adminPassword" placeholder="管理员密码" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">服务器密码（可选）</label>
+            <input class="edit-input" v-model="serverPassword" placeholder="留空则无密码" style="width:100%;">
+          </div>
+        </div>
+        <div class="deploy-advanced-toggle" @click="showAdvanced = !showAdvanced">
+          {{ showAdvanced ? '▾' : '▸' }} 高级设置
+          <span style="font-size:10px;color:var(--text3);font-weight:400;">
+            — 端口 · 反作弊 · RCON · 跨平台 · 集群
+          </span>
+        </div>
+        <div class="deploy-grid" v-if="showAdvanced">
+          <div class="deploy-field">
             <label class="deploy-label">游戏端口 (UDP)</label>
             <input class="edit-input" v-model.number="gamePort" type="number" min="1" max="65535" style="width:100%;">
           </div>
           <div class="deploy-field">
             <label class="deploy-label">查询端口 (UDP)</label>
             <input class="edit-input" v-model.number="queryPort" type="number" min="1" max="65535" style="width:100%;">
-          </div>
-          <div class="deploy-field">
-            <label class="deploy-label">管理员密码</label>
-            <input class="edit-input" v-model="adminPassword" placeholder="管理员/RCON 密码" style="width:100%;">
-          </div>
-          <div class="deploy-field">
-            <label class="deploy-label">服务器密码（可选）</label>
-            <input class="edit-input" v-model="serverPassword" placeholder="留空则无密码" style="width:100%;">
           </div>
           <div class="deploy-field">
             <label class="deploy-label">RCON 端口 (TCP)</label>
@@ -571,14 +590,12 @@ tbody tr:hover td.actions .btn { opacity:1; }
             <label class="deploy-check"><input type="checkbox" v-model="enableRCON"> 启用 RCON</label>
             <label class="deploy-check"><input type="checkbox" v-model="useCrossplay"> 跨平台</label>
           </div>
-        </div>
-        <div class="deploy-grid" style="margin-top:8px;">
           <div class="deploy-field">
-            <label class="deploy-label">集群 ID（可选，多服务器互通）</label>
+            <label class="deploy-label">集群 ID</label>
             <input class="edit-input" v-model="clusterId" placeholder="如: mycluster" style="width:100%;">
           </div>
           <div class="deploy-field">
-            <label class="deploy-label">集群目录（可选）</label>
+            <label class="deploy-label">集群目录</label>
             <input class="edit-input" v-model="clusterDir" placeholder="如: C:...serverClusters" style="width:100%;">
           </div>
         </div>
@@ -621,6 +638,28 @@ tbody tr:hover td.actions .btn { opacity:1; }
           <button class="btn" @click="loadProfile">📂 加载方案</button>
         </div>
         <div class="deploy-msg" :class="deployMsgType" v-if="deployMsg">{{ deployMsg }}</div>
+      </div>
+
+      <!-- 服务控制 -->
+      <div class="deploy-section">
+        <div class="deploy-section-title">
+          🟢 服务控制
+          <span class="server-status" style="margin-left:12px;">
+            <span class="dot" :class="serverRunning ? 'on' : 'off'"></span>
+            {{ serverRunning ? '运行中' : '未启动' }}
+            <span v-if="serverRunning" style="font-size:11px;color:var(--text3);">PID: {{ serverPid }}</span>
+          </span>
+        </div>
+        <div class="deploy-actions">
+          <button class="btn primary" @click="startServer" :disabled="serverRunning">▶ 启动服务器</button>
+          <button class="btn danger" @click="stopServer" :disabled="!serverRunning">⏹ 停止</button>
+          <span style="font-size:11px;color:var(--text3);" v-if="!serverRunning && !serverChecked">
+            需要先运行 <code>node server.cjs</code> 启动后端
+          </span>
+        </div>
+        <div class="server-log" ref="serverLogRef" v-if="serverLogs.length > 0 || serverRunning">
+          <div v-for="(l, i) in serverLogs" :key="i" :class="l.type">{{ l.text }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1358,8 +1397,81 @@ const app = createApp({
     function selectTopMods() {
       for (const m of ALL_MODS.slice(0, 20)) { if (!isModSelected(m.id)) selectedMods.value.push(m); }
     }
+    const startTxtContent = ref('');
+
+    async function loadStartTxt() {
+      try {
+        const res = await fetch('start.txt');
+        if (res.ok) startTxtContent.value = await res.text();
+      } catch (_) { startTxtContent.value = ''; }
+    }
+
     function generateBatContent() {
       const exeDir = serverPath.value.replace(/\\+$/, '') + '\\ShooterGame\\Binaries\\Win64';
+      let cmdLine;
+
+      // 优先使用 start.txt 模板
+      const template = startTxtContent.value;
+      if (template) {
+        // 找到当前地图对应的 start 命令行
+        const mapId = selectedMap.value.replace('_WP', '');
+        const lines = template.split(/\r?\n/);
+        let tplLine = '';
+        for (const line of lines) {
+          if (line.trim().startsWith('start ') && line.includes(selectedMap.value)) {
+            tplLine = line.trim(); break;
+          }
+        }
+        if (!tplLine) {
+          // 回退到硬编码格式
+          return fallbackBat(exeDir);
+        }
+
+        // 从模板行提取默认值，再用用户输入替换
+        cmdLine = tplLine
+          .replace(/SessionName=[^?]+/, 'SessionName=' + sessionName.value)
+          .replace(/QueryPort=\d+/, 'QueryPort=' + queryPort.value)
+          .replace(/-port=\d+/, '-port=' + gamePort.value)
+          .replace(/-WinLiveMaxPlayers=\d+/, '-WinLiveMaxPlayers=' + maxPlayers.value);
+
+        // Mods
+        if (selectedMods.value.length > 0) {
+          cmdLine = cmdLine.replace(/-mods=[\d,]+/, '-mods=' + selectedModIds.value.join(','));
+        }
+
+        // BattleEye
+        if (useBattleEye.value) {
+          cmdLine = cmdLine.replace(/\s*-NoBattlEye\s*/, ' ');
+        } else if (!/-NoBattlEye/.test(cmdLine)) {
+          cmdLine += ' -NoBattlEye';
+        }
+
+        // Cluster
+        if (clusterId.value) {
+          cmdLine = cmdLine.replace(/-clusterid=\S+/, '-clusterid=' + clusterId.value);
+        }
+        if (clusterDir.value) {
+          if (/-ClusterDirOverride=/.test(cmdLine)) {
+            cmdLine = cmdLine.replace(/-ClusterDirOverride="[^"]*"/, '-ClusterDirOverride="' + clusterDir.value + '"');
+          } else {
+            cmdLine += ' -ClusterDirOverride="' + clusterDir.value + '"';
+          }
+        }
+
+        // 清理多余空格
+        cmdLine = cmdLine.replace(/\s+/g, ' ').trim();
+      } else {
+        return fallbackBat(exeDir);
+      }
+
+      return ['@echo off', 'title ARK ASA - ' + sessionName.value,
+        'echo Starting ARK ASA Server: ' + sessionName.value,
+        'echo Map: ' + selectedMap.value + '  |  Port: ' + gamePort.value + '  |  Mods: ' + selectedMods.value.length,
+        '', 'cd /d "' + exeDir + '"', '', cmdLine,
+        '', 'echo.', 'echo Server started! Close this window to stop.', 'pause'].join('\r\n');
+    }
+
+    function fallbackBat(exeDir) {
       const mapUrl = selectedMap.value + '?listen' +
         '?SessionName=' + sessionName.value +
         (adminPassword.value ? '?ServerAdminPassword=' + adminPassword.value : '') +
@@ -1439,6 +1551,137 @@ const app = createApp({
       };
       input.click();
     }
+
+    // ============================================================================
+    // SERVER CONTROL — 服务控制（通过本地 Node 后端启停服务器）
+    // ============================================================================
+    const BACKEND = 'http://127.0.0.1:3456';
+    const showAdvanced = ref(false);
+    const serverRunning = ref(false);
+    const serverPid = ref(null);
+    const serverChecked = ref(false);
+    const serverLogs = ref([]);
+    const serverLogRef = ref(null);
+    let sseConnection = null;
+
+    function addServerLog(text, type) {
+      serverLogs.value.push({ text, type: type || '' });
+      if (serverLogs.value.length > 500) serverLogs.value.shift();
+      // 自动滚动到底部
+      setTimeout(() => {
+        if (serverLogRef.value) serverLogRef.value.scrollTop = serverLogRef.value.scrollHeight;
+      }, 50);
+    }
+
+    async function checkServerStatus() {
+      try {
+        const res = await fetch(`${BACKEND}/status`);
+        const data = await res.json();
+        serverChecked.value = true;
+        serverRunning.value = data.running;
+        serverPid.value = data.pid;
+        // 如果正在运行，连接日志
+        if (data.running && !sseConnection) connectSSE();
+      } catch (_) {
+        serverChecked.value = true;
+        serverRunning.value = false;
+      }
+    }
+
+    function connectSSE() {
+      if (sseConnection) { sseConnection.close(); sseConnection = null; }
+      try {
+        sseConnection = new EventSource(`${BACKEND}/logs`);
+        sseConnection.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            let type = '';
+            if (data.text.startsWith('[错误]') || data.text.startsWith('[stderr]')) type = 's-error';
+            else if (data.text.startsWith('[系统]')) type = 's-system';
+            else if (data.text.startsWith('[命令]')) type = 's-system';
+            addServerLog(data.text, type);
+          } catch (_) {}
+        };
+        sseConnection.onerror = () => {
+          // 连接断开，稍后重试
+          if (sseConnection) { sseConnection.close(); sseConnection = null; }
+        };
+        sseConnection.onopen = () => {
+          addServerLog('[系统] 已连接到服务后端', 's-system');
+        };
+      } catch (_) {}
+    }
+
+    async function startServer() {
+      deployMsg.value = ''; deployMsgType.value = '';
+      if (!serverPath.value.trim()) {
+        deployMsg.value = '请先输入服务器路径'; deployMsgType.value = 'error'; return;
+      }
+
+      serverLogs.value = [];
+      addServerLog('[系统] 正在启动服务器...', 's-system');
+
+      const config = {
+        serverPath: serverPath.value.trim(),
+        selectedMap: selectedMap.value,
+        sessionName: sessionName.value,
+        maxPlayers: maxPlayers.value,
+        gamePort: gamePort.value,
+        queryPort: queryPort.value,
+        rconPort: rconPort.value,
+        adminPassword: adminPassword.value,
+        serverPassword: serverPassword.value,
+        enableRCON: enableRCON.value,
+        useBattleEye: useBattleEye.value,
+        clusterId: clusterId.value,
+        clusterDir: clusterDir.value,
+        modIds: selectedModIds.value,
+        gameusersettingsIni: (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) ? writeINI(tabSections.gameusersettings) : null,
+        gameIni: (tabSections.game && tabSections.game.length > 0) ? writeINI(tabSections.game) : null,
+      };
+
+      try {
+        const res = await fetch(`${BACKEND}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config),
+        });
+        const data = await res.json();
+        if (data.error) {
+          addServerLog(`[错误] ${data.error}`, 's-error');
+          deployMsg.value = data.error; deployMsgType.value = 'error';
+        } else {
+          serverRunning.value = true;
+          serverPid.value = data.pid;
+          connectSSE();
+          deployMsg.value = `服务器已启动 (PID: ${data.pid})`; deployMsgType.value = 'success';
+        }
+      } catch (e) {
+        addServerLog(`[错误] 无法连接后端: ${e.message}`, 's-error');
+        deployMsg.value = '无法连接后端。请先在终端运行 node server.cjs'; deployMsgType.value = 'error';
+      }
+    }
+
+    async function stopServer() {
+      try {
+        const res = await fetch(`${BACKEND}/stop`, { method: 'POST' });
+        const data = await res.json();
+        if (data.error) {
+          deployMsg.value = data.error; deployMsgType.value = 'error';
+        } else {
+          deployMsg.value = '服务器正在关闭...'; deployMsgType.value = 'success';
+        }
+      } catch (e) {
+        deployMsg.value = '无法连接后端'; deployMsgType.value = 'error';
+      }
+    }
+
+    // 切换 tab 时检查状态
+    const originalSwitchTab = switchTab;
+    switchTab = function(tab) {
+      originalSwitchTab(tab);
+      if (tab === 'deploy' && !serverChecked.value) checkServerStatus();
+    };
 
     const searchQuery = ref('');
     const selectedCategory = ref(null);
@@ -1681,7 +1924,7 @@ const app = createApp({
       searchQuery.value = '';
       showModifiedOnly.value = false;
       if (tab === 'mods') { modQuery.value = ''; modResults.value = ALL_MODS.slice(0, modPageSize); modSearched.value = true; modTotal.value = ALL_MODS.length; modPage.value = 0; }
-      if (tab === 'deploy') { deployMsg.value = ''; deployMsgType.value = ''; }
+      if (tab === 'deploy') { deployMsg.value = ''; deployMsgType.value = ''; if (!startTxtContent.value) loadStartTxt(); }
     }
 
     // --- File Operations ---
@@ -2511,6 +2754,7 @@ PvPStructureDecayPeriodMultiplier=1
       deployMsg, deployMsgType,
       isModSelected, toggleMod, clearSelectedMods, selectTopMods,
       deployToServer, saveProfile, loadProfile,
+      showAdvanced, serverRunning, serverPid, serverChecked, serverLogs, serverLogRef, startServer, stopServer,
       ALL_MODS, isFullData
     };
   }
