@@ -302,7 +302,6 @@ tbody tr:hover td.actions .btn { opacity:1; }
 .deploy-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
 .deploy-field { display:flex; flex-direction:column; gap:4px; }
 .deploy-label { font-size:11px; color:var(--text3); font-weight:600; }
-.deploy-path-row { display:flex; gap:8px; align-items:center; }
 .deploy-check { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:4px; cursor:pointer; }
 .deploy-check input { cursor:pointer; accent-color:var(--primary2); }
 .deploy-mod-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
@@ -531,10 +530,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <div class="deploy-grid">
           <div class="deploy-field">
             <label class="deploy-label">服务器路径</label>
-            <div class="deploy-path-row">
-              <input class="edit-input" v-model="serverPath" placeholder="C:Program Files (x86)SteamsteamappscommonARK Survival Ascended Dedicated Server" style="flex:1;">
-              <button class="btn small" @click="pickServerPath">📂 选择</button>
-            </div>
+            <input class="edit-input" v-model="serverPath" :placeholder="'C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\ARK Survival Ascended Dedicated Server'" style="width:100%;">
           </div>
           <div class="deploy-field">
             <label class="deploy-label">地图</label>
@@ -1361,26 +1357,6 @@ const app = createApp({
     function clearSelectedMods() { selectedMods.value = []; }
     function selectTopMods() {
       for (const m of ALL_MODS.slice(0, 20)) { if (!isModSelected(m.id)) selectedMods.value.push(m); }
-    }
-    async function pickServerPath() {
-      try {
-        if (!window.showDirectoryPicker) {
-          deployMsg.value = '当前浏览器不支持。请从文件资源管理器地址栏复制服务器路径，粘贴到上方输入框。';
-          deployMsgType.value = 'error'; return;
-        }
-        const handle = await window.showDirectoryPicker();
-        deployMsgType.value = 'success';
-        let isValid = false;
-        try {
-          await (await (await (await handle.getDirectoryHandle('ShooterGame')).getDirectoryHandle('Binaries')).getDirectoryHandle('Win64')).getFileHandle('ArkAscendedServer.exe');
-          isValid = true;
-        } catch (_) {}
-        if (isValid) {
-          deployMsg.value = '已验证: 所选目录是有效的 ASA 服务器。请从资源管理器地址栏复制完整路径，粘贴到上方输入框。';
-        } else {
-          deployMsg.value = '已选择目录 ' + handle.name + '，但未找到 ShooterGame\\Binaries\\Win64\\ArkAscendedServer.exe。请确认后从资源管理器复制完整路径。';
-        }
-      } catch (e) { if (e.name !== 'AbortError') { deployMsg.value = '选择目录时出错: ' + e.message; deployMsgType.value = 'error'; } }
     }
     function generateBatContent() {
       const exeDir = serverPath.value.replace(/\\+$/, '') + '\\ShooterGame\\Binaries\\Win64';
@@ -2534,7 +2510,7 @@ PvPStructureDecayPeriodMultiplier=1
       filteredDeployMods, pagedDeployMods, selectedModIds,
       deployMsg, deployMsgType,
       isModSelected, toggleMod, clearSelectedMods, selectTopMods,
-      pickServerPath, deployToServer, saveProfile, loadProfile,
+      deployToServer, saveProfile, loadProfile,
       ALL_MODS, isFullData
     };
   }
