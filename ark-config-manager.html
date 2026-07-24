@@ -426,6 +426,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
       <button class="tab" :class="{ active: activeTab === 'game' }" @click="switchTab('game')">Game.ini</button>
       <button class="tab" :class="{ active: activeTab === 'mods' }" @click="switchTab('mods')">🔌 Mod搜索</button>
       <button class="tab" :class="{ active: activeTab === 'deploy' }" @click="switchTab('deploy')">🖥️ 服务器部署</button>
+      <button class="tab" :class="{ active: activeTab === 'help' }" @click="switchTab('help')">📖 使用帮助</button>
     </div>
     <button class="btn primary" @click="openFile">📂 打开文件</button>
     <button class="btn" @click="showIntro = !showIntro" style="font-size:12px;">📖 {{ showIntro ? '隐藏说明' : '配置说明' }}</button>
@@ -438,7 +439,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
   </div>
 
   <!-- 配置文件说明 -->
-  <div class="file-intro" v-if="!showIntro && activeTab !== 'mods' && activeTab !== 'deploy'">
+  <div class="file-intro" v-if="!showIntro && activeTab !== 'mods' && activeTab !== 'deploy' && activeTab !== 'help'">
     <div class="file-intro-inner">
       <div class="file-intro-card" :class="{ active: activeTab === 'gameusersettings' }" @click="switchTab('gameusersettings')">
         <div class="file-intro-title">📋 GameUserSettings.ini</div>
@@ -470,7 +471,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
   </div>
 
   <!-- Body -->
-  <div class="body" v-if="activeTab !== 'mods' && activeTab !== 'deploy'">
+  <div class="body" v-if="activeTab !== 'mods' && activeTab !== 'deploy' && activeTab !== 'help'">
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-header">📁 参数分类</div>
@@ -727,6 +728,98 @@ tbody tr:hover td.actions .btn { opacity:1; }
   </div>
 
 
+  <!-- 使用帮助面板 -->
+  <div class="body" v-if="activeTab === 'help'">
+    <div style="flex:1;overflow-y:auto;padding:20px 24px;font-size:13px;line-height:1.9;color:var(--text2);max-width:900px;">
+      <h2 style="color:var(--primary);margin-bottom:16px;">📖 使用帮助</h2>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">🚀 快速开始</div>
+        <ol style="padding-left:20px;">
+          <li>用 Chrome 或 Edge 打开本页面</li>
+          <li>点击 <b>📂 打开文件</b> 加载 <code>GameUserSettings.ini</code> 或 <code>Game.ini</code>，或直接<b>拖拽</b>文件到窗口</li>
+          <li>左侧分类栏浏览参数，或搜索框输入关键词筛选</li>
+          <li><b>双击</b>参数行或点 ✏️ 编辑，修改后点弹窗里的<b>保存</b></li>
+          <li>改完后点右上角 <b>💾 保存</b> → 确认修改 → 写入文件</li>
+        </ol>
+      </div>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">📋 两个配置文件</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">文件</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">加载顺序</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">管什么</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--primary);font-weight:600;">GameUserSettings.ini</td><td style="padding:6px 8px;">先加载</td><td style="padding:6px 8px;">倍率、模式（PVE/PVP）、规则（腐坏/洞穴）、密码、RCON</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--primary);font-weight:600;">Game.ini</td><td style="padding:6px 8px;">后加载（覆盖前者）</td><td style="padding:6px 8px;">属性成长、繁殖、伤害/抗性、细分经验、功能开关</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:11px;color:var(--accent);margin-top:8px;">⚠ Game.ini 会覆盖 GameUserSettings.ini 中同名设置，注意不要设冲突的值。</div>
+      </div>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">✏️ 编辑参数</div>
+        <ul style="padding-left:20px;">
+          <li><b>数字</b> → 数字输入框，自动校验范围</li>
+          <li><b>布尔</b> → True / False 单选按钮</li>
+          <li><b>字符串/密码</b> → 文本输入框</li>
+          <li>点击弹窗外<b>不会关闭</b>，必须点取消或保存；ESC 键也可关闭</li>
+          <li>行尾 <b>↩</b> 按钮可快捷重置单个参数为默认值</li>
+        </ul>
+      </div>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">💾 保存 / 下载 / 备份 的区别</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">按钮</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">作用</th></tr></thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">💾 保存</td><td style="padding:6px 8px;">弹确认窗列出修改 → 确认后写回<b>原文件</b></td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📥 下载</td><td style="padding:6px 8px;">导出当前配置为新文件（含未保存修改），不覆盖原文件</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📦 备份</td><td style="padding:6px 8px;">同上，但文件名带<b>时间戳</b>，方便保存多版本</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">↺ 恢复默认值</td><td style="padding:6px 8px;">所有参数重置为官方默认 → 弹确认窗 → 保存</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">🖥️ 服务器部署</div>
+        <ol style="padding-left:20px;">
+          <li>切换到 <b>🖥️ 服务器部署</b> tab</li>
+          <li>填写<b>服务器路径</b>（ARK Survival Ascended Dedicated Server 的根目录）</li>
+          <li>填写<b>服务器名称</b>、<b>最大玩家数</b></li>
+          <li>高级设置：小白不用改，默认即可</li>
+          <li>勾选要启用的 <b>Mod</b></li>
+          <li>密码：点击提示文字跳转到 GameUserSettings.ini → 网络与管理 中设置</li>
+          <li>点击 <b>🚀 生成启动工具文件</b></li>
+          <li>工具会提示选择服务器目录自动写入 INI 文件，并下载 <code>Start_ARK_Server.bat</code></li>
+          <li>双击 bat 文件启动服务器</li>
+        </ol>
+        <div style="font-size:11px;color:var(--text2);margin-top:8px;">
+          <b>文件放置位置：</b><br>
+          <code>GameUserSettings.ini</code> / <code>Game.ini</code> → <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">ShooterGame\Saved\Config\WindowsServer\</code><br>
+          <code>Start_ARK_Server.bat</code> → 任意位置（bat 内置 cd 命令自动跳转）
+        </div>
+      </div>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">🔌 Mod 搜索</div>
+        <p>切换到 <b>🔌 Mod搜索</b> tab，输入关键词即可搜索 6700+ CurseForge Mod。点击 <b>📋 复制ID</b> 复制 Mod ID。</p>
+        <p style="font-size:11px;color:var(--text3);">需要 <code>mods-data.js</code> 与 HTML 在同一目录下才有全量数据，否则使用内置 32 个精选 Mod。</p>
+      </div>
+
+      <div class="deploy-section" style="margin-bottom:16px;">
+        <div class="deploy-section-title">💡 小技巧</div>
+        <ul style="padding-left:20px;">
+          <li>选中分类后，部分分类会显示<b>联动说明</b>（如采集倍率的公式关系）</li>
+          <li>选 <b>仅已修改</b> 可快速定位改动过的参数</li>
+          <li>模版下拉框可下载<b>官服</b>或<b>高倍率</b>预设作为起点</li>
+          <li>切换 tab 或刷新页面时会提示<b>未保存的修改</b></li>
+          <li>可 <b>💾 保存方案</b> / <b>📂 加载方案</b> 备份整个部署配置</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Status Bar -->
   <div class="status-bar">
     <span class="dot" :class="{ unsaved: hasUnsavedEdits }"></span>
@@ -795,6 +888,7 @@ m(SEC_GAME, 'CropDecaySpeedMultiplier', '农作物腐烂速度（值越大烂得
 m(SEC_GAME, 'FuelConsumptionIntervalMultiplier', '燃料消耗速度（值越大消耗越慢，2=燃料用更久，<1=更快烧完）', 1.0, 'number', '农作物与燃料');
 m(SEC_GAME, 'ResourceNoReplenishRadiusPlayers', '玩家附近阻止资源刷新的半径（值越小=离玩家更近就能刷新资源，0.2=很近距离也可刷新）', 1.0, 'number', '资源刷新');
 m(SEC_GAME, 'ResourceNoReplenishRadiusStructures', '建筑附近阻止资源刷新的半径（值越小=离建筑更近就能刷新资源，0.5=中等距离可刷新）', 1.0, 'number', '资源刷新');
+m(SEC_GAME, 'ResourceRespawnPeriodMultiplier', '资源重生速度倍率（值越小资源重生越快，0.3=3倍速重生，1=正常速度）', 1.0, 'number', '资源刷新', {min:0});
 m(SEC_GAME, 'SupplyCrateLootQualityMultiplier', '空投/补给光柱战利品品质（值越大物品品质越好，>1=更容易出传说品质）', 1.0, 'number', '战利品品质');
 m(SEC_GAME, 'FishingLootQualityMultiplier', '钓鱼战利品品质（值越大钓上来的物品品质越高，>1=更容易出好货）', 1.0, 'number', '战利品品质');
 
@@ -868,6 +962,7 @@ m(SEC_GAME, 'DinoTurretDamageMultiplier', '恐龙炮塔伤害倍率', 1.0, 'numb
 // --- GameUserSettings.ini: [ServerSettings] ---
 const SEC_SERVER = '[ServerSettings]';
 m(SEC_SERVER, 'DifficultyOffset', '难度偏移（0-1，1.0=最高难度，配合MaxDifficulty=True使野生龙最高150级）', 0.2, 'number', '难度与模式', {min:0,max:1});
+m(SEC_SERVER, 'OverrideOfficialDifficulty', 'ASA覆盖官方难度（控制野生龙最高等级，5.0≈150级，10.0≈300级，0=使用DifficultyOffset）', 0, 'number', '难度与模式', {min:0,max:100});
 m(SEC_SERVER, 'DayTimeSpeedScale', '白天流逝速度（值越小白天越久，0.5=白天2倍时长，<1=更长白天，>1=白天更快结束）', 1.0, 'number', '时间与难度');
 m(SEC_SERVER, 'NightTimeSpeedScale', '夜晚流逝速度（值越大夜晚过完得越快，2=夜晚2倍速结束，>1=更短夜晚）', 1.0, 'number', '时间与难度');
 m(SEC_SERVER, 'StartTimeOverride', '覆盖服务器启动时的游戏内时间', 'False', 'boolean', '时间与难度');
@@ -957,6 +1052,7 @@ m(SEC_SERVER, 'CryoHospitalMatingCooldownReduction', '冷冻舱交配冷却减�
 m(SEC_SERVER, 'ImplantSuicideCD', '植入体自杀冷却(秒,28800=8h)', 28800, 'number', '其他');
 m(SEC_SERVER, 'OutpostSigilRewardMultiplier', '哨站徽记奖励倍率', 1, 'number', '其他');
 m(SEC_SERVER, 'DisableWeatherFog', '禁用天气雾气', 'False', 'boolean', '图形质量');
+m(SEC_SERVER, 'bDisableHexagonStore', '禁用六边形商店（ASA专用，True=关闭商店功能）', 'False', 'boolean', '其他');
 m(SEC_SERVER, 'ListenServerTetherDistanceMultiplier', '非专用主机距离倍率', 1.0, 'number', '网络与管理');
 m(SEC_SERVER, 'DisableCryopodFridgeRequirement', '取消冷冻舱冰箱需求', 'False', 'boolean', '其他');
 m(SEC_SERVER, 'ServerPassword', '服务器密码', '', 'password', '网络与管理');
@@ -1100,6 +1196,10 @@ m('[AwesomeTeleporters]', 'AllowCorpseFinder', '尸体查找器', 'True', 'boole
 m('[AwesomeTeleporters]', 'AllowFindDinos', '允许找恐龙', 'True', 'boolean', 'Mod:传送器');
 m('[AwesomeTeleporters]', 'MeshDetection', '模型检测', 'True', 'boolean', 'Mod:传送器');
 m('[AwesomeTeleporters]', 'BubbleDuration', '传送泡泡持续时间(秒)', 5, 'number', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowLastRemoteLocation', '允许回到上次远程位置', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportingOutOfPreventionZones', '允许从禁传区传出', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'AllowTeleportingIntoPreventionZones', '允许传入禁传区', 'True', 'boolean', 'Mod:传送器');
+m('[AwesomeTeleporters]', 'CorpseRequiresRemote', '尸体查找需遥控器', 'True', 'boolean', 'Mod:传送器');
 
 // --- [DerDinoFinder] Mod ---
 m('[DerDinoFinder]', 'AllowClientLanguage', '允许客户端语言', 'True', 'boolean', 'Mod:找龙');
@@ -2212,6 +2312,7 @@ CropDecaySpeedMultiplier=1
 FuelConsumptionIntervalMultiplier=1
 ResourceNoReplenishRadiusPlayers=1
 ResourceNoReplenishRadiusStructures=1
+ResourceRespawnPeriodMultiplier=1
 FishingLootQualityMultiplier=1
 PerLevelStatsMultiplier_DinoTamed[0]=0.2
 PerLevelStatsMultiplier_DinoTamed[1]=1
@@ -2288,7 +2389,7 @@ bIncreasePvPRespawnInterval=True
 bPvEAllowTribeWar=True
 bPvEAllowTribeWarCancel=False
 bPvEDisableFriendlyFire=False
-MaxDifficulty=False
+MaxDifficulty=True
 bUseSingleplayerSettings=False
 bHardLimitTurretsInRange=True
 bDisableStructurePlacementCollision=False
@@ -2321,10 +2422,6 @@ DayCycleSpeedScale=1
 HexagonRewardMultiplier=1
 bAllowMultipleC4PerDino=False
 MaximumBumpIncrements=0
-
-[/Script/ShooterGame.ShooterPlayerController_Menu]
-DiscordAccessToken=
-DiscordRefreshToken=
 `;
 
     const highRateGame =
@@ -2367,6 +2464,7 @@ CropDecaySpeedMultiplier=1
 FuelConsumptionIntervalMultiplier=1
 ResourceNoReplenishRadiusPlayers=0.2
 ResourceNoReplenishRadiusStructures=0.5
+ResourceRespawnPeriodMultiplier=0.3
 FishingLootQualityMultiplier=1
 PerLevelStatsMultiplier_DinoTamed[0]=0.2
 PerLevelStatsMultiplier_DinoTamed[1]=1
@@ -2476,19 +2574,13 @@ DayCycleSpeedScale=1
 HexagonRewardMultiplier=1
 bAllowMultipleC4PerDino=False
 MaximumBumpIncrements=0
-
-[/Script/ShooterGame.ShooterPlayerController_Menu]
-DiscordAccessToken=
-DiscordRefreshToken=
-
-[ShooterGameMode_TEMPOverrides]
-bUseCorpseLocator=True
 `;
 
     const officialGUS =
 `;METADATA=(Diff=true, UseCommands=true)
 [ServerSettings]
 DifficultyOffset=0.2
+OverrideOfficialDifficulty=0
 DayTimeSpeedScale=1
 NightTimeSpeedScale=1
 XPMultiplier=1
@@ -2578,6 +2670,7 @@ CryoHospitalMatingCooldownReduction=2
 ImplantSuicideCD=28800
 OutpostSigilRewardMultiplier=1
 DisableWeatherFog=False
+bDisableHexagonStore=False
 ListenServerTetherDistanceMultiplier=1
 DisableCryopodFridgeRequirement=False
 ServerPassword=
@@ -2612,12 +2705,34 @@ bDisableInventoryOnCharacterDownload=False
 bDisablePvPDinoDecay=False
 PvPDinoDecayPeriodMultiplier=1
 PvPStructureDecayPeriodMultiplier=1
+
+[AwesomeTeleporters]
+AdminsSeeAllTeleporters=False
+AllowLastRemoteLocation=True
+AllowTeleportingToPlayers=True
+AllowTeleportingToObelisks=True
+AllowTeleportingWildDinos=False
+AllowTeleportersOnSaddles=True
+TeleportersAreTransmitters=True
+AllowTeleportingVehicles=False
+TeleportersRequirePower=False
+AllowTeleportingOutOfPreventionZones=True
+AllowTeleportingIntoPreventionZones=True
+AllowCorpseFinder=True
+CorpseRequiresRemote=True
+AllowFindDinos=True
+MeshDetection=True
+BubbleDuration=5
+
+[DerDinoFinder]
+AllowClientLanguage=True
 `;
 
     const highRateGUS =
 `;METADATA=(Diff=true, UseCommands=true)
 [ServerSettings]
 DifficultyOffset=1
+OverrideOfficialDifficulty=5.0
 DayTimeSpeedScale=0.5
 NightTimeSpeedScale=2
 XPMultiplier=3
@@ -2707,6 +2822,7 @@ CryoHospitalMatingCooldownReduction=2
 ImplantSuicideCD=28800
 OutpostSigilRewardMultiplier=1
 DisableWeatherFog=False
+bDisableHexagonStore=False
 ListenServerTetherDistanceMultiplier=1
 DisableCryopodFridgeRequirement=True
 ServerPassword=
@@ -2741,6 +2857,27 @@ bDisableInventoryOnCharacterDownload=False
 bDisablePvPDinoDecay=False
 PvPDinoDecayPeriodMultiplier=1
 PvPStructureDecayPeriodMultiplier=1
+
+[AwesomeTeleporters]
+AdminsSeeAllTeleporters=False
+AllowLastRemoteLocation=True
+AllowTeleportingToPlayers=True
+AllowTeleportingToObelisks=True
+AllowTeleportingWildDinos=False
+AllowTeleportersOnSaddles=True
+TeleportersAreTransmitters=True
+AllowTeleportingVehicles=False
+TeleportersRequirePower=False
+AllowTeleportingOutOfPreventionZones=True
+AllowTeleportingIntoPreventionZones=True
+AllowCorpseFinder=True
+CorpseRequiresRemote=True
+AllowFindDinos=True
+MeshDetection=True
+BubbleDuration=5
+
+[DerDinoFinder]
+AllowClientLanguage=True
 `;
 
     // --- Edit Operations ---
