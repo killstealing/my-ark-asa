@@ -347,7 +347,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
   <div class="drop-overlay" :class="{ show: isDragging }">📂 释放文件以加载</div>
 
   <!-- Edit Modal -->
-  <div v-if="editing" class="modal-backdrop" v-cloak @click.self="closeEdit">
+  <div v-if="editing" class="modal-backdrop" v-cloak>
     <div class="modal">
       <div class="modal-header">✏️ 编辑参数</div>
       <div class="modal-body">
