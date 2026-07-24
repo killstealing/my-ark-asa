@@ -294,6 +294,35 @@ tbody tr:hover td.actions .btn { opacity:1; }
   .sidebar { width:160px; }
   .header { flex-wrap:wrap; }
 }
+
+/* ===== Deploy Panel ===== */
+.deploy-panel { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; }
+.deploy-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+.deploy-section-title { font-size:14px; font-weight:700; color:var(--primary); margin-bottom:12px; }
+.deploy-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
+.deploy-field { display:flex; flex-direction:column; gap:4px; }
+.deploy-label { font-size:11px; color:var(--text3); font-weight:600; }
+.deploy-path-row { display:flex; gap:8px; align-items:center; }
+.deploy-check { font-size:12px; color:var(--text2); display:flex; align-items:center; gap:4px; cursor:pointer; }
+.deploy-check input { cursor:pointer; accent-color:var(--primary2); }
+.deploy-mod-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+.deploy-mod-count { font-size:12px; color:var(--text2); white-space:nowrap; }
+.deploy-mod-list { max-height:320px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg); }
+.deploy-mod-item { display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--border); cursor:pointer; transition:var(--transition); font-size:12px; }
+.deploy-mod-item:last-child { border-bottom:none; }
+.deploy-mod-item:hover { background:var(--hover); }
+.deploy-mod-item.checked { background:var(--primary)11; }
+.deploy-mod-checkbox { font-size:14px; width:20px; text-align:center; flex-shrink:0; color:var(--primary); }
+.deploy-mod-name { flex:1; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.deploy-mod-id { font-size:10px; color:var(--text3); white-space:nowrap; font-family:Consolas,monospace; }
+.deploy-mod-pager { display:flex; gap:8px; align-items:center; justify-content:center; padding:8px 0; }
+.deploy-selected-ids { font-size:11px; color:var(--text3); font-family:Consolas,monospace; word-break:break-all; margin-top:8px; padding:6px 10px; background:var(--bg); border-radius:var(--radius); max-height:60px; overflow-y:auto; }
+.deploy-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.deploy-msg { margin-top:10px; padding:8px 14px; border-radius:var(--radius); font-size:13px; }
+.deploy-msg.success { background:var(--success)22; color:var(--success); border:1px solid var(--success); }
+.deploy-msg.error { background:var(--danger)22; color:var(--danger); border:1px solid var(--danger); }
+@media (max-width:768px) { .deploy-grid { grid-template-columns:1fr; } }
+
 </style>
 </head>
 <body>
@@ -331,17 +360,9 @@ tbody tr:hover td.actions .btn { opacity:1; }
       <button class="tab" :class="{ active: activeTab === 'gameusersettings' }" @click="switchTab('gameusersettings')">GameUserSettings.ini</button>
       <button class="tab" :class="{ active: activeTab === 'game' }" @click="switchTab('game')">Game.ini</button>
       <button class="tab" :class="{ active: activeTab === 'mods' }" @click="switchTab('mods')">🔌 Mod搜索</button>
+      <button class="tab" :class="{ active: activeTab === 'deploy' }" @click="switchTab('deploy')">🖥️ 服务器部署</button>
     </div>
     <button class="btn primary" @click="openFile">📂 打开文件</button>
-    <button class="btn" @click="saveFile" :disabled="!fileHandle || !isModified">💾 保存到原文件</button>
-    <button class="btn" @click="downloadFile" :disabled="!hasData">📥 下载文件</button>
-    <select v-model="template" style="padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;">
-      <option value="">📦 下载模版...</option>
-      <option value="official-game">Game.ini — 官服：全部1倍，关闭便利功能，纯官方体验</option>
-      <option value="official-gus">GameUserSettings.ini — 官服：难度0.2，PVP模式，无加速</option>
-      <option value="high-game">Game.ini — 高倍率：3倍经验，10倍繁殖/孵化/留痕，3倍采集，3倍负重，可加移速/无限洗点/尸体光柱</option>
-      <option value="high-gus">GameUserSettings.ini — 高倍率：3倍经验/采集，5倍驯服，PVE，建筑不腐坏，白天长夜晚短，第三人称/地图定位/准星全开</option>
-    </select>
     <button class="btn" @click="showIntro = !showIntro" style="font-size:12px;">📖 {{ showIntro ? '隐藏说明' : '配置说明' }}</button>
     <label class="btn" style="cursor:pointer;">🌓 <input type="checkbox" v-model="isDark" @change="toggleTheme" style="display:none;"></label>
     <div class="file-info" v-if="fileHandle">
@@ -352,7 +373,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
   </div>
 
   <!-- 配置文件说明 -->
-  <div class="file-intro" v-if="!showIntro && activeTab !== 'mods'">
+  <div class="file-intro" v-if="!showIntro && activeTab !== 'mods' && activeTab !== 'deploy'">
     <div class="file-intro-inner">
       <div class="file-intro-card" :class="{ active: activeTab === 'gameusersettings' }" @click="switchTab('gameusersettings')">
         <div class="file-intro-title">📋 GameUserSettings.ini</div>
@@ -384,7 +405,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
   </div>
 
   <!-- Body -->
-  <div class="body" v-if="activeTab !== 'mods'">
+  <div class="body" v-if="activeTab !== 'mods' && activeTab !== 'deploy'">
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-header">📁 参数分类</div>
@@ -407,9 +428,19 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <button class="filter-chip" :class="{ active: showModifiedOnly }" @click="showModifiedOnly = !showModifiedOnly">
           {{ showModifiedOnly ? '✓ 仅已修改' : '仅已修改' }}
         </button>
-        <span style="font-size:12px;color:var(--text3);margin-left:auto;">
+        <span style="font-size:12px;color:var(--text3);">
           显示 {{ filteredParams.length }} / {{ allParams.length }} 项
         </span>
+        <span style="flex:1;"></span>
+        <select v-model="template" style="padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;">
+          <option value="">📦 下载模版...</option>
+          <option v-if="activeTab==='game'" value="official-game">官服 Game.ini</option>
+          <option v-if="activeTab==='gameusersettings'" value="official-gus">官服 GameUserSettings.ini</option>
+          <option v-if="activeTab==='game'" value="high-game">高倍率 Game.ini</option>
+          <option v-if="activeTab==='gameusersettings'" value="high-gus">高倍率 GameUserSettings.ini</option>
+        </select>
+        <button class="btn" @click="downloadFile" :disabled="!hasData">📥 下载</button>
+        <button class="btn" @click="saveFile" :disabled="!fileHandle || !isModified">💾 保存</button>
       </div>
 
       <!-- 分类联动说明 -->
@@ -490,6 +521,114 @@ tbody tr:hover td.actions .btn { opacity:1; }
       </div>
     </div>
   </div>
+
+
+  <!-- 服务器部署面板 -->
+  <div class="body" v-if="activeTab === 'deploy'">
+    <div class="deploy-panel">
+      <div class="deploy-section">
+        <div class="deploy-section-title">⚙️ 基本配置</div>
+        <div class="deploy-grid">
+          <div class="deploy-field">
+            <label class="deploy-label">服务器路径</label>
+            <div class="deploy-path-row">
+              <input class="edit-input" v-model="serverPath" placeholder="C:Program Files (x86)SteamsteamappscommonARK Survival Ascended Dedicated Server" style="flex:1;">
+              <button class="btn small" @click="pickServerPath">📂 选择</button>
+            </div>
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">地图</label>
+            <select class="edit-input" v-model="selectedMap" style="width:100%;">
+              <option v-for="m in ASA_MAPS" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">服务器名称</label>
+            <input class="edit-input" v-model="sessionName" placeholder="ARK ASA Server" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">最大玩家数</label>
+            <input class="edit-input" v-model.number="maxPlayers" type="number" min="1" max="127" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">游戏端口 (UDP)</label>
+            <input class="edit-input" v-model.number="gamePort" type="number" min="1" max="65535" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">查询端口 (UDP)</label>
+            <input class="edit-input" v-model.number="queryPort" type="number" min="1" max="65535" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">管理员密码</label>
+            <input class="edit-input" v-model="adminPassword" placeholder="管理员/RCON 密码" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">服务器密码（可选）</label>
+            <input class="edit-input" v-model="serverPassword" placeholder="留空则无密码" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">RCON 端口 (TCP)</label>
+            <input class="edit-input" v-model.number="rconPort" type="number" min="1" max="65535" style="width:100%;">
+          </div>
+          <div class="deploy-field" style="display:flex;align-items:flex-end;gap:16px;padding-bottom:8px;">
+            <label class="deploy-check"><input type="checkbox" v-model="useBattleEye"> BattleEye 反作弊</label>
+            <label class="deploy-check"><input type="checkbox" v-model="enableRCON"> 启用 RCON</label>
+            <label class="deploy-check"><input type="checkbox" v-model="useCrossplay"> 跨平台</label>
+          </div>
+        </div>
+        <div class="deploy-grid" style="margin-top:8px;">
+          <div class="deploy-field">
+            <label class="deploy-label">集群 ID（可选，多服务器互通）</label>
+            <input class="edit-input" v-model="clusterId" placeholder="如: mycluster" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">集群目录（可选）</label>
+            <input class="edit-input" v-model="clusterDir" placeholder="如: C:...serverClusters" style="width:100%;">
+          </div>
+        </div>
+      </div>
+      <div class="deploy-section">
+        <div class="deploy-section-title">🔌 Mod 选择</div>
+        <div class="deploy-mod-toolbar">
+          <input class="search-box" v-model="deployModSearch" @input="deployModPage=0" placeholder="🔍 搜索 Mod（名称 / ID / 分类）..." style="max-width:350px;">
+          <span class="deploy-mod-count">已选: <b>{{ selectedMods.length }}</b> 个</span>
+          <button class="btn small" @click="clearSelectedMods" :disabled="selectedMods.length === 0">清空</button>
+          <button class="btn small" @click="selectTopMods" title="快速选择前20个热门Mod">⚡ 快速选热门</button>
+        </div>
+        <div class="deploy-mod-list">
+          <div class="deploy-mod-item" v-for="m in pagedDeployMods" :key="m.id" :class="{ checked: isModSelected(m.id) }" @click="toggleMod(m)">
+            <span class="deploy-mod-checkbox">{{ isModSelected(m.id) ? '☑' : '☐' }}</span>
+            <span class="mod-cat-tag" v-if="m.cat" style="font-size:10px;">{{ m.cat }}</span>
+            <span class="deploy-mod-name">{{ m.name }}</span>
+            <span class="deploy-mod-id">ID: {{ m.id }}</span>
+          </div>
+          <div class="empty" style="padding:20px;" v-if="pagedDeployMods.length === 0">
+            <div class="sub">没有匹配的 Mod</div>
+          </div>
+        </div>
+        <div class="deploy-mod-pager" v-if="deployModTotal > deployModPageSize">
+          <button class="btn small" @click="deployModPage=0" :disabled="deployModPage===0">⏮</button>
+          <button class="btn small" @click="deployModPage = deployModPage - 1" :disabled="deployModPage===0">◀</button>
+          <span style="font-size:12px;color:var(--text2);">{{ deployModPage + 1 }} / {{ Math.ceil(deployModTotal / deployModPageSize) }}</span>
+          <button class="btn small" @click="deployModPage = deployModPage + 1" :disabled="(deployModPage + 1) * deployModPageSize >= deployModTotal">▶</button>
+          <button class="btn small" @click="deployModPage = Math.floor(deployModTotal / deployModPageSize)" :disabled="(deployModPage + 1) * deployModPageSize >= deployModTotal">⏭</button>
+        </div>
+        <div class="deploy-selected-ids" v-if="selectedModIds.length > 0">
+          已选 Mod ID: {{ selectedModIds.join(', ') }}
+        </div>
+      </div>
+      <div class="deploy-section">
+        <div class="deploy-section-title">🚀 操作</div>
+        <div class="deploy-actions">
+          <button class="btn primary" @click="deployToServer">🚀 部署到服务器</button>
+          <button class="btn" @click="saveProfile">💾 保存方案</button>
+          <button class="btn" @click="loadProfile">📂 加载方案</button>
+        </div>
+        <div class="deploy-msg" :class="deployMsgType" v-if="deployMsg">{{ deployMsg }}</div>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Status Bar -->
   <div class="status-bar">
@@ -1162,6 +1301,169 @@ const app = createApp({
       if (n >= 1000) return (n/1000).toFixed(1) + 'K';
       return String(n);
     }
+    // ============================================================================
+    // SERVER DEPLOY
+    // ============================================================================
+    const ASA_MAPS = [
+      { id: 'TheIsland_WP', name: 'The Island (孤岛)' },
+      { id: 'ScorchedEarth_WP', name: 'Scorched Earth (焦土)' },
+      { id: 'Aberration_WP', name: 'Aberration (畸变)' },
+      { id: 'Extinction_WP', name: 'Extinction (灭绝)' },
+      { id: 'TheCenter_WP', name: 'The Center (中心岛)' },
+      { id: 'Ragnarok_WP', name: 'Ragnarok (仙境)' },
+      { id: 'LostIsland_WP', name: 'Lost Island (失落之岛)' },
+      { id: 'Fjordur_WP', name: 'Fjordur (维京)' },
+      { id: 'Valguero_WP', name: 'Valguero (瓦尔盖罗)' },
+      { id: 'CrystalIsles_WP', name: 'Crystal Isles (水晶岛)' },
+      { id: 'Genesis_WP', name: 'Genesis (创世纪)' },
+      { id: 'Gen2_WP', name: 'Genesis 2 (创世纪2)' },
+      { id: 'Astraeos_WP', name: 'Astraeos (星界)' },
+      { id: 'Svartalfheim_WP', name: 'Svartalfheim (矮人国度)' },
+      { id: 'Forglar_WP', name: 'Forglar' },
+    ];
+    const serverPath = ref('');
+    const selectedMap = ref('TheIsland_WP');
+    const sessionName = ref('ARK ASA Server');
+    const maxPlayers = ref(20);
+    const gamePort = ref(7777);
+    const queryPort = ref(27015);
+    const rconPort = ref(27020);
+    const adminPassword = ref('');
+    const serverPassword = ref('');
+    const useBattleEye = ref(true);
+    const enableRCON = ref(false);
+    const useCrossplay = ref(true);
+    const clusterId = ref('');
+    const clusterDir = ref('');
+    const deployModSearch = ref('');
+    const selectedMods = ref([]);
+    const deployModPage = ref(0);
+    const deployModPageSize = 30;
+    const deployMsg = ref('');
+    const deployMsgType = ref('');
+    const filteredDeployMods = computed(() => {
+      const q = deployModSearch.value.trim().toLowerCase();
+      if (!q) return ALL_MODS;
+      return ALL_MODS.filter(m => m.name.toLowerCase().includes(q) || String(m.id).includes(q) || (m.cat || '').toLowerCase().includes(q));
+    });
+    const deployModTotal = computed(() => filteredDeployMods.value.length);
+    const pagedDeployMods = computed(() => {
+      const start = deployModPage.value * deployModPageSize;
+      return filteredDeployMods.value.slice(start, start + deployModPageSize);
+    });
+    const selectedModIds = computed(() => selectedMods.value.map(m => m.id));
+    function isModSelected(modId) { return selectedMods.value.some(m => m.id === modId); }
+    function toggleMod(mod) {
+      const idx = selectedMods.value.findIndex(m => m.id === mod.id);
+      if (idx >= 0) selectedMods.value.splice(idx, 1);
+      else selectedMods.value.push(mod);
+    }
+    function clearSelectedMods() { selectedMods.value = []; }
+    function selectTopMods() {
+      for (const m of ALL_MODS.slice(0, 20)) { if (!isModSelected(m.id)) selectedMods.value.push(m); }
+    }
+    async function pickServerPath() {
+      try {
+        if (!window.showDirectoryPicker) {
+          deployMsg.value = '当前浏览器不支持。请从文件资源管理器地址栏复制服务器路径，粘贴到上方输入框。';
+          deployMsgType.value = 'error'; return;
+        }
+        const handle = await window.showDirectoryPicker();
+        deployMsgType.value = 'success';
+        let isValid = false;
+        try {
+          await (await (await (await handle.getDirectoryHandle('ShooterGame')).getDirectoryHandle('Binaries')).getDirectoryHandle('Win64')).getFileHandle('ArkAscendedServer.exe');
+          isValid = true;
+        } catch (_) {}
+        if (isValid) {
+          deployMsg.value = '已验证: 所选目录是有效的 ASA 服务器。请从资源管理器地址栏复制完整路径，粘贴到上方输入框。';
+        } else {
+          deployMsg.value = '已选择目录 ' + handle.name + '，但未找到 ShooterGame\\Binaries\\Win64\\ArkAscendedServer.exe。请确认后从资源管理器复制完整路径。';
+        }
+      } catch (e) { if (e.name !== 'AbortError') { deployMsg.value = '选择目录时出错: ' + e.message; deployMsgType.value = 'error'; } }
+    }
+    function generateBatContent() {
+      const exeDir = serverPath.value.replace(/\\+$/, '') + '\\ShooterGame\\Binaries\\Win64';
+      const mapUrl = selectedMap.value + '?listen' +
+        '?SessionName=' + sessionName.value +
+        (adminPassword.value ? '?ServerAdminPassword=' + adminPassword.value : '') +
+        (serverPassword.value ? '?ServerPassword=' + serverPassword.value : '') +
+        '?QueryPort=' + queryPort.value +
+        (enableRCON.value ? '?RCONEnabled=True?RCONPort=' + rconPort.value : '');
+      const flags = ['-port=' + gamePort.value, '-WinLiveMaxPlayers=' + maxPlayers.value];
+      if (selectedMods.value.length > 0) flags.push('-mods=' + selectedModIds.value.join(','));
+      if (!useBattleEye.value) flags.push('-NoBattlEye');
+      if (clusterId.value) flags.push('-clusterid=' + clusterId.value);
+      if (clusterDir.value) flags.push('-ClusterDirOverride="' + clusterDir.value + '"');
+      const cmdLine = 'start "' + sessionName.value + '" ArkAscendedServer.exe ' + mapUrl + ' ' + flags.join(' ');
+      return ['@echo off', 'title ARK ASA - ' + sessionName.value,
+        'echo Starting ARK ASA Server: ' + sessionName.value,
+        'echo Map: ' + selectedMap.value + '  |  Port: ' + gamePort.value + '  |  Mods: ' + selectedMods.value.length,
+        '', 'cd /d "' + exeDir + '"', '', cmdLine,
+        '', 'echo.', 'echo Server started! Close this window to stop.', 'pause'].join('\r\n');
+    }
+    async function deployToServer() {
+      deployMsg.value = ''; deployMsgType.value = '';
+      if (!serverPath.value.trim()) { deployMsg.value = '请先输入服务器路径'; deployMsgType.value = 'error'; return; }
+      const batContent = generateBatContent();
+      const files = [];
+      if (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) files.push({ name: 'GameUserSettings.ini', content: writeINI(tabSections.gameusersettings) });
+      if (tabSections.game && tabSections.game.length > 0) files.push({ name: 'Game.ini', content: writeINI(tabSections.game) });
+      try {
+        if (window.showDirectoryPicker && files.length > 0) {
+          const dirHandle = await window.showDirectoryPicker();
+          for (const f of files) {
+            const fh = await dirHandle.getFileHandle(f.name, { create: true });
+            const w = await fh.createWritable(); await w.write(f.content); await w.close();
+          }
+          deployMsg.value = '已写入 ' + files.length + ' 个配置文件到服务器目录';
+          deployMsgType.value = 'success';
+        }
+      } catch (e) { if (e.name !== 'AbortError') console.error(e); }
+      const blob = new Blob([batContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'StartServer.bat'; a.click();
+      URL.revokeObjectURL(url);
+      if (!deployMsg.value) { deployMsg.value = 'StartServer.bat 已下载，请放到服务器根目录后双击启动。'; deployMsgType.value = 'success'; }
+    }
+    function saveProfile() {
+      const profile = { version: 1, serverPath: serverPath.value, selectedMap: selectedMap.value,
+        sessionName: sessionName.value, maxPlayers: maxPlayers.value, gamePort: gamePort.value,
+        queryPort: queryPort.value, rconPort: rconPort.value, adminPassword: adminPassword.value,
+        serverPassword: serverPassword.value, useBattleEye: useBattleEye.value, enableRCON: enableRCON.value,
+        useCrossplay: useCrossplay.value, clusterId: clusterId.value, clusterDir: clusterDir.value,
+        selectedModIds: selectedModIds.value };
+      const json = JSON.stringify(profile, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = sessionName.value.replace(/[<>:"/\\|?*]/g, '_') + '.asa-profile.json'; a.click();
+      URL.revokeObjectURL(url);
+      deployMsg.value = '方案已下载'; deployMsgType.value = 'success';
+    }
+    function loadProfile() {
+      const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,.asa-profile.json';
+      input.onchange = async () => {
+        const file = input.files[0]; if (!file) return;
+        try {
+          const text = await file.text(); const profile = JSON.parse(text);
+          if (profile.version !== 1) throw new Error('不支持该方案版本');
+          serverPath.value = profile.serverPath || ''; selectedMap.value = profile.selectedMap || 'TheIsland_WP';
+          sessionName.value = profile.sessionName || 'ARK ASA Server'; maxPlayers.value = profile.maxPlayers || 20;
+          gamePort.value = profile.gamePort || 7777; queryPort.value = profile.queryPort || 27015;
+          rconPort.value = profile.rconPort || 27020; adminPassword.value = profile.adminPassword || '';
+          serverPassword.value = profile.serverPassword || ''; useBattleEye.value = profile.useBattleEye !== false;
+          enableRCON.value = !!profile.enableRCON; useCrossplay.value = profile.useCrossplay !== false;
+          clusterId.value = profile.clusterId || ''; clusterDir.value = profile.clusterDir || '';
+          selectedMods.value = [];
+          if (profile.selectedModIds) for (const id of profile.selectedModIds) { const m = ALL_MODS.find(m => m.id === id); if (m) selectedMods.value.push(m); }
+          deployMsg.value = '方案已加载: ' + profile.sessionName + ' (' + (profile.selectedModIds ? profile.selectedModIds.length : 0) + ' 个 Mod)';
+          deployMsgType.value = 'success';
+        } catch (e) { deployMsg.value = '加载方案失败: ' + e.message; deployMsgType.value = 'error'; }
+      };
+      input.click();
+    }
+
     const searchQuery = ref('');
     const selectedCategory = ref(null);
     const showModifiedOnly = ref(false);
@@ -1403,6 +1705,7 @@ const app = createApp({
       searchQuery.value = '';
       showModifiedOnly.value = false;
       if (tab === 'mods') { modQuery.value = ''; modResults.value = ALL_MODS.slice(0, modPageSize); modSearched.value = true; modTotal.value = ALL_MODS.length; modPage.value = 0; }
+      if (tab === 'deploy') { deployMsg.value = ''; deployMsgType.value = ''; }
     }
 
     // --- File Operations ---
@@ -2223,6 +2526,15 @@ PvPStructureDecayPeriodMultiplier=1
       startEdit, closeEdit, saveEdit, resetEdit, resetParam, copyParam,
       toggleTheme,
       modQuery, modResults, modSearched, modPage, modTotal, modPageSize, searchMods, copyModId, formatNum,
+      ALL_MODS, isFullData,
+      ASA_MAPS, serverPath, selectedMap, sessionName, maxPlayers,
+      gamePort, queryPort, rconPort, adminPassword, serverPassword,
+      useBattleEye, enableRCON, useCrossplay, clusterId, clusterDir,
+      deployModSearch, selectedMods, deployModPage, deployModPageSize, deployModTotal,
+      filteredDeployMods, pagedDeployMods, selectedModIds,
+      deployMsg, deployMsgType,
+      isModSelected, toggleMod, clearSelectedMods, selectTopMods,
+      pickServerPath, deployToServer, saveProfile, loadProfile,
       ALL_MODS, isFullData
     };
   }
