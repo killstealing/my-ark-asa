@@ -386,6 +386,38 @@ tbody tr:hover td.actions .btn { opacity:1; }
     </div>
   </div>
 
+  <!-- Save Confirm Modal -->
+  <div v-if="showSaveConfirm" class="modal-backdrop" v-cloak>
+    <div class="modal" style="min-width:480px;max-width:650px;max-height:80vh;display:flex;flex-direction:column;">
+      <div class="modal-header">💾 确认保存 — 共 {{ pendingChanges.length }} 项修改</div>
+      <div class="modal-body" style="overflow-y:auto;max-height:50vh;padding:8px 16px;">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th style="text-align:left;padding:6px 8px;color:var(--text2);">参数名</th>
+              <th style="text-align:left;padding:6px 8px;color:var(--text2);">说明</th>
+              <th style="text-align:left;padding:6px 8px;color:var(--text2);">原值</th>
+              <th style="text-align:left;padding:6px 8px;color:var(--accent);">→ 新值</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in pendingChanges" :key="c.section + '::' + c.key" style="border-bottom:1px solid var(--border);">
+              <td class="param-name">{{ c.key }}</td>
+              <td style="padding:4px 8px;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="c.desc">{{ c.desc || '-' }}</td>
+              <td style="padding:4px 8px;color:var(--text3);font-family:Consolas,monospace;">{{ c.oldVal }}</td>
+              <td style="padding:4px 8px;color:var(--accent);font-weight:700;font-family:Consolas,monospace;">{{ c.newVal }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" @click="cancelSave">取消</button>
+        <div style="flex:1;"></div>
+        <button class="btn primary" @click="confirmSave">✅ 确认保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="header">
     <div class="logo">🦖 ARK ASA <span>服务器配置管理器</span></div>
@@ -1686,6 +1718,31 @@ const app = createApp({
     const editError = ref('');
     const editInput = ref(null);
 
+    // Save confirm modal
+    const showSaveConfirm = ref(false);
+    const saveConfirmCallback = ref(null); // 用户确认后执行的函数
+
+    // 收集当前 tab 所有被修改的参数，供保存确认弹窗展示
+    const pendingChanges = computed(() => {
+      const changes = [];
+      for (const sec of currentSections.value) {
+        const sectionFull = '[' + sec.name + ']';
+        for (const prop of sec.properties) {
+          if (prop._modified) {
+            const meta = findMeta(sectionFull, prop.key);
+            changes.push({
+              key: prop.key,
+              section: sec.name,
+              desc: meta?.n || '',
+              oldVal: prop._originalValue ?? '?',
+              newVal: prop.value,
+            });
+          }
+        }
+      }
+      return changes;
+    });
+
     // Drag counter (for nested elements)
     let dragCounter = 0;
 
@@ -1991,39 +2048,72 @@ const app = createApp({
       for (const sec of sections) {
         for (const prop of sec.properties) {
           delete prop._modified;
+          delete prop._originalValue;
         }
+      }
+    }
+
+    function cancelSave() {
+      showSaveConfirm.value = false;
+      saveConfirmCallback.value = null;
+    }
+
+    function confirmSave() {
+      if (saveConfirmCallback.value) {
+        saveConfirmCallback.value();
       }
     }
 
     async function saveFile() {
       const handle = fileHandles[activeTab.value];
       if (!handle) return;
-
-      const sections = tabSections[activeTab.value];
-      const text = writeINI(sections);
-
-      try {
-        if (handle.createWritable) {
-          // File System Access API — write directly
-          const writable = await handle.createWritable();
-          await writable.write(text);
-          await writable.close();
-          clearModifiedFlags(sections);
-        } else {
-          // Fallback download
-          downloadFile();
-          return;
-        }
-      } catch (e) {
-        console.error('Save error:', e);
-        alert('保存失败: ' + e.message + '\n\n将使用下载方式代替。');
-        downloadFile();
+      if (pendingChanges.value.length === 0) {
+        alert('没有需要保存的修改');
+        return;
       }
+
+      showSaveConfirm.value = true;
+      saveConfirmCallback.value = async () => {
+        const sections = tabSections[activeTab.value];
+        const text = writeINI(sections);
+        try {
+          if (handle.createWritable) {
+            const writable = await handle.createWritable();
+            await writable.write(text);
+            await writable.close();
+          } else {
+            // 无 File System Access API，降级为下载
+            triggerDownload(text);
+          }
+          clearModifiedFlags(sections);
+          showSaveConfirm.value = false;
+        } catch (e) {
+          console.error('Save error:', e);
+          alert('保存失败: ' + e.message + '\n\n将使用下载方式代替。');
+          triggerDownload(text);
+          clearModifiedFlags(sections);
+          showSaveConfirm.value = false;
+        }
+      };
     }
 
     function downloadFile() {
-      const sections = tabSections[activeTab.value];
-      const text = writeINI(sections);
+      if (pendingChanges.value.length === 0) {
+        alert('没有需要保存的修改');
+        return;
+      }
+
+      showSaveConfirm.value = true;
+      saveConfirmCallback.value = () => {
+        const sections = tabSections[activeTab.value];
+        const text = writeINI(sections);
+        triggerDownload(text);
+        clearModifiedFlags(sections);
+        showSaveConfirm.value = false;
+      };
+    }
+
+    function triggerDownload(text) {
       const name = activeTab.value === 'gameusersettings' ? 'GameUserSettings.ini' : 'Game.ini';
       const blob = new Blob([text], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -2032,7 +2122,6 @@ const app = createApp({
       a.download = name;
       a.click();
       URL.revokeObjectURL(url);
-      clearModifiedFlags(sections);
     }
 
     // --- Templates ---
@@ -2667,10 +2756,12 @@ PvPStructureDecayPeriodMultiplier=1
         }
       }
 
-      // Apply change
+      // Apply change — 首次修改时保存原始值，供确认弹窗展示
+      if (editing.value.prop._modified === undefined) {
+        editing.value.prop._originalValue = editing.value.prop.value;
+      }
       editing.value.prop.value = val;
       editing.value.prop._modified = true;
-      // 不自动添加注释到文件中，仅保留原始文件中已有的行内注释
       closeEdit();
     }
 
@@ -2683,6 +2774,10 @@ PvPStructureDecayPeriodMultiplier=1
 
     function resetParam(param) {
       if (!param.meta?.d) return;
+      // 首次修改时保存原始值，供确认弹窗展示
+      if (param.prop._modified === undefined) {
+        param.prop._originalValue = param.prop.value;
+      }
       param.prop.value = String(param.meta.d);
       param.prop._modified = true;
     }
@@ -2761,6 +2856,7 @@ PvPStructureDecayPeriodMultiplier=1
       allParams, categories, catIcons, catFreq, catNote, filteredParams,
       catCount, catModifiedCount,
       editing, editValue, editError, editInput,
+      showSaveConfirm, pendingChanges, cancelSave, confirmSave,
       toggleSort, switchTab,
       openFile, saveFile, downloadFile, template,
       startEdit, closeEdit, saveEdit, resetEdit, resetParam, copyParam,
