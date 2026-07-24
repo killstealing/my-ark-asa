@@ -150,7 +150,7 @@
 3. **Mod 选择**：从 Mod 列表中勾选要启用的 Mod
 4. **密码**：点击提示文字跳转到 GameUserSettings.ini → 网络与管理 中设置
 5. 点击 **🚀 生成启动工具文件**：
-   - 自动下载 `StartServer.bat` 到本地
+   - 自动下载 `Start_ARK_Server.bat` 到本地
    - 同时提示选择服务器目录，将 `GameUserSettings.ini` 和 `Game.ini` 写入对应位置
 
 💡 还可以 **💾 保存方案** / **📂 加载方案** 来保存和恢复整个部署配置（JSON 格式）。
@@ -161,7 +161,7 @@
 |------|---------------|
 | `GameUserSettings.ini` | `ShooterGame\Saved\Config\WindowsServer\` |
 | `Game.ini` | `ShooterGame\Saved\Config\WindowsServer\` |
-| `StartServer.bat` | 任意位置（bat 内置 `cd /d` 自动跳转到服务器 exe 目录，放桌面即可） |
+| `Start_ARK_Server.bat` | 任意位置（bat 内置 `cd /d` 自动跳转到服务器 exe 目录，放桌面即可） |
 
 > 点击「生成启动工具文件」时，工具会提示选择服务器目录并自动写入 INI 文件；bat 文件下载到浏览器默认下载目录，放哪里都行。
 

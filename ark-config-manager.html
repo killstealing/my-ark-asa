@@ -697,7 +697,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <div class="deploy-section-title">📁 文件放置位置</div>
         <div style="font-size:12px;color:var(--text2);line-height:2;">
           <div>📄 <b>GameUserSettings.ini</b> 和 <b>Game.ini</b> → <code style="background:var(--bg2);padding:1px 6px;border-radius:3px;">ShooterGame\Saved\Config\WindowsServer\</code></div>
-          <div>📄 <b>StartServer.bat</b> → 任意位置均可（bat 内置 cd 命令自动跳转到服务器目录），放桌面或服务器根目录都行</div>
+          <div>📄 <b>Start_ARK_Server.bat</b> → 任意位置均可（bat 内置 cd 命令自动跳转到服务器目录），放桌面或服务器根目录都行</div>
           <div style="margin-top:6px;color:var(--text3);">💡 点击「生成启动工具文件」后，工具会提示选择目录，自动写入 INI 文件；bat 文件下载到浏览器默认下载目录。</div>
         </div>
       </div>
@@ -1546,9 +1546,9 @@ const app = createApp({
       } catch (e) { if (e.name !== 'AbortError') console.error(e); }
       const blob = new Blob([batBytes], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'StartServer.bat'; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = 'Start_ARK_Server.bat'; a.click();
       URL.revokeObjectURL(url);
-      if (!deployMsg.value) { deployMsg.value = 'StartServer.bat 已下载，双击启动。'; deployMsgType.value = 'success'; }
+      if (!deployMsg.value) { deployMsg.value = 'Start_ARK_Server.bat 已下载，双击启动。'; deployMsgType.value = 'success'; }
     }
     function saveProfile() {
       const profile = { version: 1, serverPath: serverPath.value, selectedMap: selectedMap.value,
