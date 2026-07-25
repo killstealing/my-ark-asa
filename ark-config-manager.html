@@ -730,6 +730,14 @@ tbody tr:hover td.actions .btn { opacity:1; }
     <div style="flex:1;overflow-y:auto;padding:16px 20px;font-size:13px;line-height:1.9;color:var(--text2);">
       <h2 style="color:var(--primary);margin-bottom:14px;">📖 使用帮助</h2>
 
+      <div style="font-size:15px;color:var(--text);padding:14px 18px;background:var(--bg2);border-left:4px solid var(--primary);border-radius:var(--radius);margin-bottom:14px;line-height:1.9;">
+        💡 <b>搭一个方舟服务器没有想象的那么难！</b>总共就三步：<br>
+          <b>⓪ 安装服务器</b> — 在 Steam 的「工具」分类中找到 <b>ARK: Survival Ascended Dedicated Server</b> 并安装（只需一次）；<br>
+          <b>① 配置参数</b> — 拖拽 <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">GameUserSettings.ini</code> 和 <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">Game.ini</code> 进来修改倍率、规则等；<br>
+          <b>② 启动服务器</b> — 在部署页面生成 <code style="background:var(--bg);padding:1px 4px;border-radius:3px;">Start_ARK_Server.bat</code>，双击就能启动。<br>
+        流程：安装（一次性）→ 改参数 → 生成 bat → 双击启动，就这么简单 🎉
+      </div>
+
       <div class="deploy-section" style="margin-bottom:14px;">
         <div class="deploy-section-title">🦖 工具功能概览</div>
         <div style="display:flex;gap:16px;">
@@ -1519,7 +1527,7 @@ const app = createApp({
     // --- State ---
     const isDragging = ref(false);
     const isDark = ref(true);
-    const activeTab = ref('gameusersettings'); // 'game' | 'gameusersettings' | 'mods'
+    const activeTab = ref('help'); // 'game' | 'gameusersettings' | 'mods' | 'deploy' | 'help'
     const showIntro = ref(false);
 
     // --- Mod Search ---
