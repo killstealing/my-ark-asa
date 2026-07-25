@@ -1501,24 +1501,6 @@ function writeINI(sections) {
   return lines.join('\n');
 }
 
-/** 将密码注入 GameUserSettings.ini 文本（不修改 sections，仅处理输出文本） */
-function injectPasswords(iniText, adminPassword, serverPassword) {
-  let result = iniText || '';
-  if (!result.includes('[ServerSettings]')) {
-    result = result + '\n[ServerSettings]\n';
-  }
-  // 只在 deploy 面板手动填写了密码时才覆盖（一般情况密码通过表格编辑即可）
-  if (adminPassword) {
-    result = result.replace(/^ServerAdminPassword=.*$/gm, '');
-    result = result.replace('[ServerSettings]', '[ServerSettings]\nServerAdminPassword=' + adminPassword);
-  }
-  if (serverPassword) {
-    result = result.replace(/^ServerPassword=.*$/gm, '');
-    result = result.replace('[ServerSettings]', '[ServerSettings]\nServerPassword=' + serverPassword);
-  }
-  return result.replace(/\n{3,}/g, '\n\n');
-}
-
 // ============================================================================
 // VUE APPLICATION
 // ============================================================================
@@ -1717,33 +1699,17 @@ const app = createApp({
         'echo No template found', 'pause'].join('\r\n');
     }
 
-    function fallbackBat(exeDir) { return generateBatContent(); }
     async function deployToServer() {
       deployMsg.value = ''; deployMsgType.value = '';
       if (!serverPath.value.trim()) { deployMsg.value = '请先输入服务器路径'; deployMsgType.value = 'error'; return; }
       const batRaw = generateBatContent();
-      // 字节精确写入，保持原始编码不变
       const batBytes = new Uint8Array(batRaw.length);
       for (let i = 0; i < batRaw.length; i++) batBytes[i] = batRaw.charCodeAt(i) & 0xFF;
-      const files = [];
-      if (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) files.push({ name: 'GameUserSettings.ini', content: injectPasswords(writeINI(tabSections.gameusersettings), adminPassword.value, serverPassword.value) });
-      if (tabSections.game && tabSections.game.length > 0) files.push({ name: 'Game.ini', content: writeINI(tabSections.game) });
-      try {
-        if (window.showDirectoryPicker && files.length > 0) {
-          const dirHandle = await window.showDirectoryPicker();
-          for (const f of files) {
-            const fh = await dirHandle.getFileHandle(f.name, { create: true });
-            const w = await fh.createWritable(); await w.write(f.content); await w.close();
-          }
-          deployMsg.value = '已写入 ' + files.length + ' 个配置文件到服务器目录';
-          deployMsgType.value = 'success';
-        }
-      } catch (e) { if (e.name !== 'AbortError') console.error(e); }
       const blob = new Blob([batBytes], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'Start_ARK_Server.bat'; a.click();
       URL.revokeObjectURL(url);
-      if (!deployMsg.value) { deployMsg.value = 'Start_ARK_Server.bat 已下载。⚠ 首次使用：右键 .bat 文件 → 属性 → 勾选「解除锁定」→ 确定，否则双击会报错。'; deployMsgType.value = 'success'; }
+      deployMsg.value = 'Start_ARK_Server.bat 已下载。⚠ 首次使用：右键 .bat 文件 → 属性 → 勾选「解除锁定」→ 确定，否则双击会报错。'; deployMsgType.value = 'success';
     }
     function saveProfile() {
       const profile = { version: 1, serverPath: serverPath.value, selectedMap: selectedMap.value,
@@ -1867,7 +1833,6 @@ const app = createApp({
         clusterId: clusterId.value,
         clusterDir: clusterDir.value,
         modIds: selectedModIds.value,
-        gameusersettingsIni: (() => { const txt = (tabSections.gameusersettings && tabSections.gameusersettings.length > 0) ? writeINI(tabSections.gameusersettings) : ''; return injectPasswords(txt, adminPassword.value, serverPassword.value); })(),
         gameIni: (tabSections.game && tabSections.game.length > 0) ? writeINI(tabSections.game) : null,
       };
 
