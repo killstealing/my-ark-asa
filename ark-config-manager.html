@@ -1588,7 +1588,12 @@ const app = createApp({
       if (template) {
         let result = template;
 
-        // 全局替换模板占位符 serverName → 用户输入的服务器名
+        // URL 编码服务器名（SessionName 参数中空格等特殊字符必须编码）
+        const safeName = encodeURIComponent(sessionName.value);
+
+        // 先替换 URL 中的 SessionName=serverName → URL 编码版本
+        result = result.replace(/SessionName=serverName/g, 'SessionName=' + safeName);
+        // 再替换 window title 等其他位置的 serverName → 原始名称
         result = result.replace(/serverName/g, sessionName.value);
         if (selectedMods.value.length > 0) {
           result = result.replace(/-mods=[\d,]+/g, '-mods=' + selectedModIds.value.join(','));
