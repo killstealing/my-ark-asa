@@ -2200,9 +2200,22 @@ const app = createApp({
         const text = writeINI(sections);
         try {
           if (handle.createWritable) {
-            const writable = await handle.createWritable();
-            await writable.write(text);
-            await writable.close();
+            // 先请求写入权限（浏览器可能在页面刷新后回收了权限）
+            let hasPermission = true;
+            if (handle.queryPermission) {
+              const status = await handle.queryPermission({ mode: 'readwrite' });
+              if (status !== 'granted') {
+                hasPermission = (await handle.requestPermission({ mode: 'readwrite' })) === 'granted';
+              }
+            }
+            if (hasPermission) {
+              const writable = await handle.createWritable();
+              await writable.write(text);
+              await writable.close();
+            } else {
+              // 用户拒绝授权，降级为下载
+              triggerDownload(text);
+            }
           } else {
             // 无 File System Access API，降级为下载
             triggerDownload(text);
@@ -2211,10 +2224,17 @@ const app = createApp({
           showSaveConfirm.value = false;
         } catch (e) {
           console.error('Save error:', e);
-          alert('保存失败: ' + e.message + '\n\n将使用下载方式代替。');
-          triggerDownload(text);
-          clearModifiedFlags(sections);
-          showSaveConfirm.value = false;
+          // NotFoundError: 文件被移动/删除/重命名了 → 静默降级下载
+          if (e.name === 'NotFoundError') {
+            triggerDownload(text);
+            clearModifiedFlags(sections);
+            showSaveConfirm.value = false;
+          } else {
+            alert('保存失败: ' + e.message + '\n\n将使用下载方式代替。');
+            triggerDownload(text);
+            clearModifiedFlags(sections);
+            showSaveConfirm.value = false;
+          }
         }
       };
     }
