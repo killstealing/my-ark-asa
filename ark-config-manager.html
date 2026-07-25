@@ -428,11 +428,9 @@ tbody tr:hover td.actions .btn { opacity:1; }
       <button class="tab" :class="{ active: activeTab === 'deploy' }" @click="switchTab('deploy')">🖥️ 服务器部署</button>
       <button class="tab" :class="{ active: activeTab === 'help' }" @click="switchTab('help')">📖 使用帮助</button>
     </div>
-    <button class="btn primary" @click="openFile">📂 打开文件</button>
     <button class="btn" @click="showIntro = !showIntro" style="font-size:12px;">📖 {{ showIntro ? '隐藏说明' : '配置说明' }}</button>
     <label class="btn" style="cursor:pointer;">🌓 <input type="checkbox" v-model="isDark" @change="toggleTheme" style="display:none;"></label>
-    <div class="file-info" v-if="fileHandle">
-      <div>📄 <span class="name">{{ fileHandle.name }}</span></div>
+    <div class="file-info" v-if="hasData">
       <div v-if="modifiedCount > 0">已修改 <span class="count">{{ modifiedCount }}</span> 项</div>
       <div v-else>全部为默认值</div>
     </div>
@@ -507,7 +505,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
         </select>
         <button class="btn" @click="downloadFile" :disabled="!hasData">📥 下载</button>
         <button class="btn" @click="backupFile" :disabled="!hasData" title="带时间戳备份当前配置">📦 备份</button>
-        <button class="btn" @click="saveFile" :disabled="!fileHandle || !isModified">💾 保存</button>
+        <button class="btn" @click="saveFile" :disabled="!hasData || !isModified">💾 保存</button>
         <button class="btn danger" @click="resetAllToDefaults" :disabled="!hasData" style="margin-left:4px;">↺ 恢复默认值</button>
       </div>
 
@@ -547,7 +545,7 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <div v-else class="empty">
           <div class="icon">{{ hasData ? '🔍' : '📂' }}</div>
           <div class="text">{{ hasData ? '没有匹配的参数' : '还没有加载配置文件' }}</div>
-          <div class="sub">{{ hasData ? '尝试修改搜索条件' : '点击「打开文件」或拖拽 .ini 文件到窗口以开始' }}</div>
+          <div class="sub">{{ hasData ? '尝试修改搜索条件' : '拖拽 .ini 文件到窗口以加载配置' }}</div>
         </div>
       </div>
     </div>
@@ -736,10 +734,10 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <div class="deploy-section-title">🚀 快速开始</div>
         <ol style="padding-left:20px;">
           <li>用 Chrome 或 Edge 打开本页面</li>
-          <li>点击 <b>📂 打开文件</b> 加载 <code>GameUserSettings.ini</code> 或 <code>Game.ini</code>，或直接<b>拖拽</b>文件到窗口</li>
+          <li><b>拖拽</b> <code>GameUserSettings.ini</code> 或 <code>Game.ini</code> 文件到窗口以加载配置</li>
           <li>左侧分类栏浏览参数，或搜索框输入关键词筛选</li>
           <li><b>双击</b>参数行或点 ✏️ 编辑，修改后点弹窗里的<b>保存</b></li>
-          <li>改完后点右上角 <b>💾 保存</b> → 确认修改 → 写入文件</li>
+          <li>改完后点右上角 <b>💾 保存</b> → 确认修改 → 选择保存位置写入文件</li>
         </ol>
       </div>
 
@@ -771,9 +769,9 @@ tbody tr:hover td.actions .btn { opacity:1; }
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">按钮</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">作用</th></tr></thead>
           <tbody>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">💾 保存</td><td style="padding:6px 8px;">弹确认窗列出修改 → 确认后写回<b>原文件</b></td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📥 下载</td><td style="padding:6px 8px;">导出当前配置为新文件（含未保存修改），不覆盖原文件</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📦 备份</td><td style="padding:6px 8px;">同上，但文件名带<b>时间戳</b>，方便保存多版本</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">💾 保存</td><td style="padding:6px 8px;">弹确认窗列出修改 → 确认后弹出保存对话框 → 选择位置保存（可覆盖原文件）</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📥 下载</td><td style="padding:6px 8px;">直接导出当前配置为下载文件（含未保存修改），不弹确认窗</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📦 备份</td><td style="padding:6px 8px;">同下载，但文件名带<b>时间戳</b>，方便保存多版本</td></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">↺ 恢复默认值</td><td style="padding:6px 8px;">所有参数重置为官方默认 → 弹确认窗 → 保存</td></tr>
           </tbody>
         </table>
@@ -823,9 +821,8 @@ tbody tr:hover td.actions .btn { opacity:1; }
   <div class="status-bar">
     <span class="dot" :class="{ unsaved: hasUnsavedEdits }"></span>
     <span>{{ hasUnsavedEdits ? '有未保存的修改' : '已保存' }}</span>
-    <span v-if="fileHandle">| 文件: {{ fileHandle.name }}</span>
-    <span>| 支持 Chrome / Edge（File System Access API）</span>
-    <span style="margin-left:auto;">拖拽 .ini 文件到窗口即可加载</span>
+    <span>| 使用 Chrome / Edge 体验最佳</span>
+    <span style="margin-left:auto;">拖拽 .ini 文件到窗口即可加载配置</span>
   </div>
 </div>
 
@@ -1824,8 +1821,6 @@ const app = createApp({
     const sortKey = ref('key');
     const sortAsc = ref(true);
 
-    // File handles (one per tab)
-    const fileHandles = reactive({ game: null, gameusersettings: null });
     // Parsed sections per tab
     const tabSections = reactive({ game: [], gameusersettings: [] });
 
@@ -1865,7 +1860,6 @@ const app = createApp({
 
     // --- Computed ---
     const currentSections = computed(() => tabSections[activeTab.value] || []);
-    const fileHandle = computed(() => fileHandles[activeTab.value]);
 
     const allParams = computed(() => {
       const result = [];
@@ -2109,47 +2103,17 @@ const app = createApp({
     }
 
     // --- File Operations ---
-    async function openFile() {
-      try {
-        let handle, file;
-        // Try File System Access API first
-        if (window.showOpenFilePicker) {
-          [handle] = await window.showOpenFilePicker({
-            types: [{ description: 'INI Files', accept: { 'text/plain': ['.ini'] } }],
-            startIn: 'documents'
-          });
-          file = await handle.getFile();
-        } else {
-          // Fallback: use input element
-          file = await new Promise((resolve, reject) => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.ini';
-            input.onchange = () => {
-              const f = input.files[0];
-              if (f) resolve(f);
-              else reject(new Error('No file selected'));
-            };
-            input.click();
-          });
-        }
-        await loadFile(file, handle);
-      } catch (e) {
-        if (e.name !== 'AbortError') console.error('Open file error:', e);
-      }
-    }
-
-    function processFile(file, handle) {
+    function processFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve({ text: reader.result, handle, file });
+        reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsText(file);
       });
     }
 
-    async function loadFile(file, handle) {
-      const { text } = await processFile(file, handle);
+    async function loadFile(file) {
+      const text = await processFile(file);
       const sections = parseINI(text);
 
       // Detect file type
@@ -2157,8 +2121,6 @@ const app = createApp({
       const tab = hasServerSettings ? 'gameusersettings' : 'game';
 
       tabSections[tab] = sections;
-      if (handle) fileHandles[tab] = handle;
-      else fileHandles[tab] = { name: file.name };
       activeTab.value = tab;
       selectedCategory.value = null;
       searchQuery.value = '';
@@ -2187,8 +2149,7 @@ const app = createApp({
     }
 
     async function saveFile() {
-      const handle = fileHandles[activeTab.value];
-      if (!handle) return;
+      if (!hasData.value) return;
       if (pendingChanges.value.length === 0) {
         alert('没有需要保存的修改');
         return;
@@ -2198,44 +2159,35 @@ const app = createApp({
       saveConfirmCallback.value = async () => {
         const sections = tabSections[activeTab.value];
         const text = writeINI(sections);
-        try {
-          if (handle.createWritable) {
-            // 先请求写入权限（浏览器可能在页面刷新后回收了权限）
-            let hasPermission = true;
-            if (handle.queryPermission) {
-              const status = await handle.queryPermission({ mode: 'readwrite' });
-              if (status !== 'granted') {
-                hasPermission = (await handle.requestPermission({ mode: 'readwrite' })) === 'granted';
-              }
-            }
-            if (hasPermission) {
-              const writable = await handle.createWritable();
-              await writable.write(text);
-              await writable.close();
-            } else {
-              // 用户拒绝授权，降级为下载
-              triggerDownload(text);
-            }
-          } else {
-            // 无 File System Access API，降级为下载
-            triggerDownload(text);
-          }
-          clearModifiedFlags(sections);
-          showSaveConfirm.value = false;
-        } catch (e) {
-          console.error('Save error:', e);
-          // NotFoundError: 文件被移动/删除/重命名了 → 静默降级下载
-          if (e.name === 'NotFoundError') {
-            triggerDownload(text);
+        const fileName = activeTab.value === 'gameusersettings' ? 'GameUserSettings.ini' : 'Game.ini';
+
+        // 优先使用 showSaveFilePicker（弹出保存对话框，用户可选择覆盖原文件）
+        if (window.showSaveFilePicker) {
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: fileName,
+              types: [{ description: 'INI Files', accept: { 'text/plain': ['.ini'] } }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(text);
+            await writable.close();
             clearModifiedFlags(sections);
             showSaveConfirm.value = false;
-          } else {
-            alert('保存失败: ' + e.message + '\n\n将使用下载方式代替。');
-            triggerDownload(text);
-            clearModifiedFlags(sections);
-            showSaveConfirm.value = false;
+            return;
+          } catch (e) {
+            if (e.name === 'AbortError') {
+              // 用户取消选择 → 不保存，修改标记不清除
+              showSaveConfirm.value = false;
+              return;
+            }
+            console.warn('showSaveFilePicker 失败，降级为下载:', e.message);
           }
         }
+
+        // 降级：浏览器下载
+        triggerDownload(text);
+        clearModifiedFlags(sections);
+        showSaveConfirm.value = false;
       };
     }
 
@@ -3026,7 +2978,7 @@ AllowClientLanguage=True
         if (item.kind === 'file') {
           const file = item.getAsFile();
           if (file.name.endsWith('.ini')) {
-            await loadFile(file, null);
+            await loadFile(file);
           }
         }
       }
@@ -3064,13 +3016,13 @@ AllowClientLanguage=True
       isDragging, isDark, activeTab, showIntro,
       searchQuery, selectedCategory, showModifiedOnly,
       sortKey, sortAsc,
-      fileHandle, hasData, isModified, modifiedCount, hasUnsavedEdits,
+      hasData, isModified, modifiedCount, hasUnsavedEdits,
       allParams, categories, catIcons, catFreq, catNote, filteredParams,
       catCount, catModifiedCount,
       editing, editValue, editError, editInput,
       showSaveConfirm, pendingChanges, cancelSave, confirmSave,
       toggleSort, switchTab, goToPasswordSettings,
-      openFile, saveFile, downloadFile, backupFile, template,
+      saveFile, downloadFile, backupFile, template,
       startEdit, closeEdit, saveEdit, resetEdit, resetParam, resetAllToDefaults, copyParam,
       toggleTheme,
       modQuery, modResults, modSearched, modPage, modTotal, modPageSize, searchMods, copyModId, formatNum,
