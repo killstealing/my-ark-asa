@@ -615,11 +615,19 @@ tbody tr:hover td.actions .btn { opacity:1; }
               分类中设置 ServerAdminPassword 和 ServerPassword
             </span>
           </div>
+          <div class="deploy-field">
+            <label class="deploy-label">集群 ID <span style="font-size:10px;color:var(--accent);">（多通必填）</span></label>
+            <input class="edit-input" v-model="clusterId" placeholder="如: mycluster（多张地图互通必须相同）" style="width:100%;">
+          </div>
+          <div class="deploy-field">
+            <label class="deploy-label">集群目录 <span style="font-size:10px;color:var(--accent);">（多通必填）</span></label>
+            <input class="edit-input" v-model="clusterDir" placeholder="如: C:\serverClusters（会自动在目录下找 clusters 子文件夹）" style="width:100%;">
+          </div>
         </div>
         <div class="deploy-advanced-toggle" @click="showAdvanced = !showAdvanced">
           {{ showAdvanced ? '▾' : '▸' }} 高级设置
           <span style="font-size:10px;color:var(--text3);font-weight:400;">
-            — 端口 · 反作弊 · RCON · 跨平台 · 集群
+            — 端口 · 反作弊 · RCON · 跨平台
           </span>
           <span style="font-size:10px;color:var(--accent);margin-left:8px;">💡 小白不用改，默认即可</span>
         </div>
@@ -640,14 +648,6 @@ tbody tr:hover td.actions .btn { opacity:1; }
             <label class="deploy-check"><input type="checkbox" v-model="useBattleEye"> BattleEye 反作弊</label>
             <label class="deploy-check"><input type="checkbox" v-model="enableRCON"> 启用 RCON</label>
             <label class="deploy-check"><input type="checkbox" v-model="useCrossplay"> 跨平台</label>
-          </div>
-          <div class="deploy-field">
-            <label class="deploy-label">集群 ID</label>
-            <input class="edit-input" v-model="clusterId" placeholder="如: mycluster" style="width:100%;">
-          </div>
-          <div class="deploy-field">
-            <label class="deploy-label">集群目录</label>
-            <input class="edit-input" v-model="clusterDir" placeholder="如: C:...serverClusters" style="width:100%;">
           </div>
         </div>
       </div>
@@ -727,93 +727,179 @@ tbody tr:hover td.actions .btn { opacity:1; }
 
   <!-- 使用帮助面板 -->
   <div class="body" v-if="activeTab === 'help'">
-    <div style="flex:1;overflow-y:auto;padding:20px 24px;font-size:13px;line-height:1.9;color:var(--text2);max-width:900px;">
-      <h2 style="color:var(--primary);margin-bottom:16px;">📖 使用帮助</h2>
+    <div style="flex:1;overflow-y:auto;padding:16px 20px;font-size:13px;line-height:1.9;color:var(--text2);">
+      <h2 style="color:var(--primary);margin-bottom:14px;">📖 使用帮助</h2>
 
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">🚀 快速开始</div>
-        <ol style="padding-left:20px;">
-          <li>用 Chrome 或 Edge 打开本页面</li>
-          <li><b>拖拽</b> <code>GameUserSettings.ini</code> 或 <code>Game.ini</code> 文件到窗口以加载配置</li>
-          <li>左侧分类栏浏览参数，或搜索框输入关键词筛选</li>
-          <li><b>双击</b>参数行或点 ✏️ 编辑，修改后点弹窗里的<b>保存</b></li>
-          <li>改完后点右上角 <b>💾 保存</b> → 确认修改 → 选择保存位置写入文件</li>
-        </ol>
-      </div>
-
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">📋 两个配置文件</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">文件</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">加载顺序</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">管什么</th></tr></thead>
-          <tbody>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--primary);font-weight:600;">GameUserSettings.ini</td><td style="padding:6px 8px;">先加载</td><td style="padding:6px 8px;">倍率、模式（PVE/PVP）、规则（腐坏/洞穴）、密码、RCON</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--primary);font-weight:600;">Game.ini</td><td style="padding:6px 8px;">后加载（覆盖前者）</td><td style="padding:6px 8px;">属性成长、繁殖、伤害/抗性、细分经验、功能开关</td></tr>
-          </tbody>
-        </table>
-        <div style="font-size:11px;color:var(--accent);margin-top:8px;">⚠ Game.ini 会覆盖 GameUserSettings.ini 中同名设置，注意不要设冲突的值。</div>
-      </div>
-
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">✏️ 编辑参数</div>
-        <ul style="padding-left:20px;">
-          <li><b>数字</b> → 数字输入框，自动校验范围</li>
-          <li><b>布尔</b> → True / False 单选按钮</li>
-          <li><b>字符串/密码</b> → 文本输入框</li>
-          <li>点击弹窗外<b>不会关闭</b>，必须点取消或保存；ESC 键也可关闭</li>
-          <li>行尾 <b>↩</b> 按钮可快捷重置单个参数为默认值</li>
-        </ul>
-      </div>
-
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">💾 保存 / 下载 / 备份 的区别</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">按钮</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">作用</th></tr></thead>
-          <tbody>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">💾 保存</td><td style="padding:6px 8px;">弹确认窗列出修改 → 确认后弹出保存对话框 → 选择位置保存（可覆盖原文件）</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📥 下载</td><td style="padding:6px 8px;">直接导出当前配置为下载文件（含未保存修改），不弹确认窗</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📦 备份</td><td style="padding:6px 8px;">同下载，但文件名带<b>时间戳</b>，方便保存多版本</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">↺ 恢复默认值</td><td style="padding:6px 8px;">所有参数重置为官方默认 → 弹确认窗 → 保存</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">🖥️ 服务器部署</div>
-        <ol style="padding-left:20px;">
-          <li>切换到 <b>🖥️ 服务器部署</b> tab</li>
-          <li>填写<b>服务器路径</b>（ARK Survival Ascended Dedicated Server 的根目录）</li>
-          <li>填写<b>服务器名称</b>、<b>最大玩家数</b></li>
-          <li>高级设置：小白不用改，默认即可</li>
-          <li>勾选要启用的 <b>Mod</b></li>
-          <li>密码：点击提示文字跳转到 GameUserSettings.ini → 网络与管理 中设置</li>
-          <li>点击 <b>🚀 生成启动工具文件</b></li>
-          <li>工具会提示选择服务器目录自动写入 INI 文件，并下载 <code>Start_ARK_Server.bat</code></li>
-          <li>双击 bat 文件启动服务器</li>
-        </ol>
-        <div style="font-size:11px;color:var(--text2);margin-top:8px;">
-          <b>文件放置位置：</b><br>
-          <code>GameUserSettings.ini</code> / <code>Game.ini</code> → <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">ShooterGame\Saved\Config\WindowsServer\</code><br>
-          <code>Start_ARK_Server.bat</code> → 任意位置（bat 内置 cd 命令自动跳转）
+      <div class="deploy-section" style="margin-bottom:14px;">
+        <div class="deploy-section-title">🦖 工具功能概览</div>
+        <div style="display:flex;gap:16px;">
+          <div style="flex:1;min-width:0;">
+            <b>① 图形化参数编辑</b>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text3);">
+              拖拽 <code>GameUserSettings.ini</code> 或 <code>Game.ini</code> 到窗口，即可在左侧分类栏中浏览和修改服务器参数 ——
+              经验倍率、驯服速度、采集量、恐龙属性成长、繁殖速度、PVE/PVP 开关……所有参数都有<b>中文说明</b>，双击即可编辑。
+            </p>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <b>② Mod 搜索</b>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text3);">
+              内置 6700+ CurseForge Mod 数据库，按名称或 ID 搜索，一键复制 Mod ID。
+            </p>
+            <b style="display:block;margin-top:10px;">③ 服务器部署</b>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text3);">
+              填写服务器路径、名称、Mod 列表等配置后，一键生成 <code>Start_ARK_Server.bat</code> 启动文件。双击 bat 即可启动服务器，无需手动拼命令行。
+            </p>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--accent);margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);">
+          💡 <b>使用流程：</b>先切换到 <b>GameUserSettings.ini</b> 或 <b>Game.ini</b> 标签页修改倍率等参数 → 再到 <b>🖥️ 服务器部署</b> 标签页生成 bat 启动文件。
         </div>
       </div>
 
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">🔌 Mod 搜索</div>
-        <p>切换到 <b>🔌 Mod搜索</b> tab，输入关键词即可搜索 6700+ CurseForge Mod。点击 <b>📋 复制ID</b> 复制 Mod ID。</p>
-        <p style="font-size:11px;color:var(--text3);">需要 <code>mods-data.js</code> 与 HTML 在同一目录下才有全量数据，否则使用内置 32 个精选 Mod。</p>
-      </div>
+      <div style="display:flex;gap:16px;">
+        <!-- 左列 -->
+        <div style="flex:1;min-width:0;">
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">🚀 快速开始</div>
+            <ol style="padding-left:20px;">
+              <li>用 Chrome 或 Edge 打开本页面</li>
+              <li><b>拖拽</b> <code>GameUserSettings.ini</code> 或 <code>Game.ini</code> 文件到窗口以加载配置
+                <div style="font-size:11px;color:var(--text3);margin-top:2px;">
+                  📁 文件位置：<code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">ARK Survival Ascended Dedicated Server\ShooterGame\Saved\Config\WindowsServer\</code>
+                </div>
+              </li>
+              <li>左侧分类栏浏览参数，或搜索框输入关键词筛选</li>
+              <li><b>双击</b>参数行或点 ✏️ 编辑，修改后点弹窗里的<b>保存</b></li>
+              <li>改完后点工具栏 <b>💾 保存</b> → 确认修改 → 选择保存位置写入文件</li>
+            </ol>
+          </div>
 
-      <div class="deploy-section" style="margin-bottom:16px;">
-        <div class="deploy-section-title">💡 小技巧</div>
-        <ul style="padding-left:20px;">
-          <li>选中分类后，部分分类会显示<b>联动说明</b>（如采集倍率的公式关系）</li>
-          <li>选 <b>仅已修改</b> 可快速定位改动过的参数</li>
-          <li>模版下拉框可下载<b>官服</b>或<b>高倍率</b>预设作为起点</li>
-          <li>切换 tab 或刷新页面时会提示<b>未保存的修改</b></li>
-          <li>可 <b>💾 保存方案</b> / <b>📂 加载方案</b> 备份整个部署配置</li>
-        </ul>
-      </div>
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">✏️ 编辑参数</div>
+            <ul style="padding-left:20px;">
+              <li><b>数字</b> → 数字输入框，自动校验范围</li>
+              <li><b>布尔</b> → True / False 单选按钮</li>
+              <li><b>字符串/密码</b> → 文本输入框</li>
+              <li>点击弹窗外<b>不会关闭</b>，必须点取消或保存；ESC 键也可关闭</li>
+              <li>行尾 <b>↩</b> 按钮可快捷重置单个参数为默认值</li>
+            </ul>
+          </div>
 
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">📥 安装服务器</div>
+            <ol style="padding-left:20px;">
+              <li>打开 <b>Steam</b></li>
+              <li>点击左上角 <b>「库」</b> 旁边的下拉箭头，把"游戏"切换为 <b>「工具」</b></li>
+              <li>在列表中找到 <b>ARK: Survival Ascended Dedicated Server</b>，点击 <b>安装</b>，等待下载完成</li>
+            </ol>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">
+              💡 安装完成后，路径默认在 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">C:\Program Files (x86)\Steam\steamapps\common\ARK Survival Ascended Dedicated Server\</code>
+            </div>
+          </div>
+
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">🖥️ 服务器部署</div>
+            <ol style="padding-left:20px;">
+              <li>切换到 <b>🖥️ 服务器部署</b> tab</li>
+              <li>填写<b>服务器路径</b>（ARK Survival Ascended Dedicated Server 的根目录）</li>
+              <li>填写<b>服务器名称</b>、<b>最大玩家数</b></li>
+              <li>如需<b>多通</b>（跨地图传服），必须填写<b>集群 ID</b> 和<b>集群目录</b>
+                <div style="font-size:11px;color:var(--accent);margin-top:6px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
+                  <b>🔗 多通（集群）配置须知：</b><br>
+                  ① 在磁盘上创建集群目录，如 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">C:\serverClusters</code><br>
+                  ② 在该目录<b>里面</b>必须再创建一个 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">clusters</code> 子文件夹，最终路径为 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">C:\serverClusters\clusters</code><br>
+                  ③ <b>集群目录</b>填的是父级（如 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">C:\serverClusters</code>），ARK 服务器会自动在里面找 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">clusters</code> 子文件夹<br>
+                  ④ <b>所有</b>参与互通的服务器，集群 ID 和集群目录必须<b>完全一致</b><br>
+                  ⑤ 集群目录的父级路径需确保 ARK 服务器进程有<b>读写权限</b><br>
+                  ⑥ 没有创建 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">clusters</code> 子文件夹会导致传服失败！
+                </div>
+              </li>
+              <li>高级设置：端口/反作弊/RCON，小白不用改</li>
+              <li>勾选要启用的 <b>Mod</b></li>
+              <li>密码：点击提示文字跳转到 GameUserSettings.ini → 网络与管理 中设置</li>
+              <li>点击 <b>🚀 生成启动工具文件</b>，直接下载 <code>Start_ARK_Server.bat</code></li>
+              <li>双击 bat 文件启动服务器
+                <div style="font-size:11px;color:var(--accent);margin-top:6px;padding:8px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
+                  <b>⚠ 首次双击 bat 报错？</b><br>
+                  Windows 会将浏览器下载的文件标记为"来自 Internet"从而阻止运行。<br>
+                  解决方法：<b>右键 .bat 文件 → 属性 → 勾选「解除锁定」→ 确定</b>，之后即可正常双击启动。<br>
+                  <span style="color:var(--text3);">（这是 Windows 安全机制，不是文件有问题）</span>
+                </div>
+              </li>
+            </ol>
+            <div style="font-size:11px;color:var(--accent);margin-top:8px;padding:10px 14px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);">
+              <b>⏹ 如何正确停止服务器？</b><br>
+              不要直接点右上角 ✕ 关窗口！服务器默认<b>每 15 分钟</b>自动存档一次，直接关闭会丢失最长 15 分钟的进度。<br>
+              正确做法：在服务器窗口中点击右上角的 <b>↑ 箭头</b> 打开命令行 → 输入 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">cheat doexit</code> → 按回车。<br>
+              服务器会先<b>保存存档</b>再优雅退出，下次启动不会丢数据。<br>
+              <span style="color:var(--text3);">💡 也可以设置 AutoSavePeriodMinutes 参数来调整自动存档间隔（默认 15 分钟）。</span>
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-top:8px;">
+              <b>文件放置位置：</b><br>
+              <code>GameUserSettings.ini</code> / <code>Game.ini</code> → <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">ARK Survival Ascended Dedicated Server\ShooterGame\Saved\Config\WindowsServer\</code><br>
+              <code>Start_ARK_Server.bat</code> → 任意位置（bat 内置 cd 命令自动跳转）
+            </div>
+          </div>
+        </div>
+        <!-- 右列 -->
+        <div style="flex:1;min-width:0;">
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">📋 两个配置文件</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">文件</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">加载</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">管什么</th></tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--primary);font-weight:600;">GameUserSettings.ini</td><td style="padding:6px 8px;">先加载</td><td style="padding:6px 8px;">倍率、模式、规则、密码、RCON</td></tr>
+                <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--primary);font-weight:600;">Game.ini</td><td style="padding:6px 8px;">后加载（覆盖前者）</td><td style="padding:6px 8px;">属性成长、繁殖、伤害/抗性、功能开关</td></tr>
+              </tbody>
+            </table>
+            <div style="font-size:11px;color:var(--accent);margin-top:6px;">⚠ Game.ini 会覆盖 GameUserSettings.ini 中同名设置。</div>
+          </div>
+
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">💾 保存 / 下载 / 备份 的区别</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:6px 8px;color:var(--text2);">按钮</th><th style="text-align:left;padding:6px 8px;color:var(--text2);">作用</th></tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">💾 保存</td><td style="padding:6px 8px;">弹确认窗 → 弹出保存对话框 → 选择位置覆盖写入</td></tr>
+                <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📥 下载</td><td style="padding:6px 8px;">直接导出为下载文件（含未保存修改）</td></tr>
+                <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">📦 备份</td><td style="padding:6px 8px;">同下载，文件名带<b>时间戳</b>，方便多版本</td></tr>
+                <tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;font-weight:600;">↺ 恢复默认值</td><td style="padding:6px 8px;">全部参数重置为官方默认 → 弹确认窗 → 保存</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">🔌 Mod 搜索</div>
+            <p>切换到 <b>🔌 Mod搜索</b> tab，输入关键词即可搜索 6700+ CurseForge Mod。</p>
+            <p style="font-size:11px;color:var(--text3);">需要 <code>mods-data.js</code> 与 HTML 在同一目录下才有全量数据。</p>
+          </div>
+
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">💡 小技巧</div>
+            <ul style="padding-left:20px;">
+              <li>选中分类后，部分分类会显示<b>联动说明</b></li>
+              <li>选 <b>仅已修改</b> 可快速定位改动过的参数</li>
+              <li>模版下拉框可下载<b>官服</b>或<b>高倍率</b>预设作为起点</li>
+              <li>切换 tab 或刷新页面时会提示<b>未保存的修改</b></li>
+              <li>可 <b>💾 保存方案</b> / <b>📂 加载方案</b> 备份整个部署配置</li>
+            </ul>
+          </div>
+
+          <div class="deploy-section" style="margin-bottom:14px;">
+            <div class="deploy-section-title">🔧 Mod 加载故障排查</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+              <p><b>现象：</b>启动服务器后 Mod 一直加载不出来。</p>
+              <p style="margin-top:6px;"><b>排查步骤：</b></p>
+              <ol style="padding-left:20px;">
+                <li><b>多试几次</b> — 偶尔 Mod 下载慢或网络波动导致加载失败，重启服务器几次通常能解决。</li>
+                <li>如果试了 <b>十几次</b> 还不行 → 检查 <code>GameUserSettings.ini</code> 和 <code>Game.ini</code> 配置是否有误。</li>
+                <li>实在找不到问题 → 把两个配置文件<b>删掉</b>，重新启动服务器，系统会自动生成干净的默认配置，然后再拖拽进来重新修改。</li>
+                <li><b>常见坑：</b>检查 <code>GameUserSettings.ini</code> 中是否有 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">ActiveMods=</code> 或 <code style="background:var(--bg2);padding:1px 4px;border-radius:3px;">ActiveModMaps=</code> 参数，如果有的话<b>删掉这两行</b>再试（这些是旧版本残留参数，会干扰 Mod 加载）。</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1649,7 +1735,7 @@ const app = createApp({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'Start_ARK_Server.bat'; a.click();
       URL.revokeObjectURL(url);
-      if (!deployMsg.value) { deployMsg.value = 'Start_ARK_Server.bat 已下载，双击启动。'; deployMsgType.value = 'success'; }
+      if (!deployMsg.value) { deployMsg.value = 'Start_ARK_Server.bat 已下载。⚠ 首次使用：右键 .bat 文件 → 属性 → 勾选「解除锁定」→ 确定，否则双击会报错。'; deployMsgType.value = 'success'; }
     }
     function saveProfile() {
       const profile = { version: 1, serverPath: serverPath.value, selectedMap: selectedMap.value,
